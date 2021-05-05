@@ -2,10 +2,11 @@ import {Logger, SfdxError} from '@salesforce/core';
 import {Controller} from '../../Controller';
 import {Config} from '../util/Config';
 import {RuleEngine} from '../services/RuleEngine';
-import {Catalog, Rule, RuleGroup, RuleResult, RuleTarget} from '../../types';
+import {AdvancedTargetPattern, Catalog, Rule, RuleGroup, RuleResult, RuleTarget, TargetPattern} from '../../types';
 import {ENGINE} from '../../Constants';
 import {StaticResourceHandler, StaticResourceType} from '../util/StaticResourceHandler';
 import {FileHandler} from '../util/FileHandler';
+import * as engineUtils from '../util/CommonEngineUtils';
 import cspawn = require('cross-spawn');
 import path = require('path');
 import StreamZip = require('node-stream-zip');
@@ -64,6 +65,7 @@ type RetireJsData = {
 type RetireJsOutput = {
 	version: string;
 	data: RetireJsData[];
+	errors?: string[];
 };
 
 export class RetireJsEngine implements RuleEngine {
@@ -74,11 +76,20 @@ export class RetireJsEngine implements RuleEngine {
 	// locally-scoped `retire` module, and then using that to derive a path to the CLI-executable JS script.
 	private static RETIRE_JS_PATH: string = require.resolve('retire').replace(path.join('lib', 'retire.js'), path.join('bin', 'retire'));
 
+	private static SIMPLE_TARGET_PATTERNS: ReadonlyArray<string> = [
+		'**/*.js',
+		'**/*.resource',
+		'**/*.zip',
+		'!**/node_modules/**',
+		'!**/bower_components/**'
+	];
+
 	// When we're duplicating files, we want to make sure that each duplicate file's path is unique. We'll do that by
 	// generating aliases associated with portions of the original path. We need incrementing indexes to generate unique
 	// aliases, and we need maps to track relationships between aliases and originals.
 	private static NEXT_TMPDIR_IDX = 0;
 	private static NEXT_TMPFILE_IDX = 0;
+	private static NEXT_TMPZIP_IDX = 0;
 
 	protected aliasDirsByOriginalDir: Map<string, string> = new Map();
 	protected originalFilesByAlias: Map<string, string> = new Map();
@@ -94,12 +105,40 @@ export class RetireJsEngine implements RuleEngine {
 		return RetireJsEngine.ENGINE_NAME;
 	}
 
-	public async getTargetPatterns(): Promise<string[]> {
-		return this.config.getTargetPatterns(ENGINE.RETIRE_JS);
+	public static getSimpleTargetPatterns(): ReadonlyArray<string> {
+		return RetireJsEngine.SIMPLE_TARGET_PATTERNS;
+	}
+
+	public async getTargetPatterns(): Promise<TargetPattern[]> {
+		const advancedPatterns: AdvancedTargetPattern[] = [{
+			// This pattern should be applied to any file.
+			basePatterns: ["**/**"],
+			advancedMatcher: (t: string): Promise<boolean> => {
+				const ext = path.extname(t);
+				// Replace the file's extension with .resource-meta.xml.
+				const extlessFilePath = ext === '' ? t : t.slice(0, ext.length * -1);
+				const metaFilePath = extlessFilePath + ".resource-meta.xml";
+				// If a file with that name exists, then this is a hidden static resource, and should be targeted.
+				return this.fh.exists(metaFilePath);
+			}
+		}];
+		// We want all of the target patterns in the config, as well as all of our default patterns.
+		return [...await this.config.getTargetPatterns(ENGINE.RETIRE_JS), ...RetireJsEngine.SIMPLE_TARGET_PATTERNS, ...advancedPatterns];
 	}
 
 	public getCatalog(): Promise<Catalog> {
 		return Promise.resolve(retireJsCatalog);
+	}
+
+	/* eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars */
+	shouldEngineRun(ruleGroups: RuleGroup[], rules: Rule[], target: RuleTarget[], engineOptions: Map<string, string>): boolean {
+		// If the engine was not filtered out, no reason to not run it
+		return true;
+	}
+
+	/* eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars */
+	isEngineRequested(filterValues: string[], engineOptions: Map<string, string>): boolean {
+		return engineUtils.isValueInFilter(this.getName(), filterValues);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await, no-unused-vars
@@ -141,10 +180,15 @@ export class RetireJsEngine implements RuleEngine {
 		return new Promise<RuleResult[]>((res, rej) => {
 			const cp = cspawn(RetireJsEngine.RETIRE_JS_PATH, invocation.args);
 
-			// We only care about StdErr, since that's where the vulnerability entries will be logged to.
+			// Initialize both stdout and stderr as empty strings to which we can append data as we receive it.
+			let stdout = '';
 			let stderr = '';
 
 			// When data is passed back up to us, pop it onto the appropriate string.
+			cp.stdout.on('data', data => {
+				stdout += data;
+			});
+
 			cp.stderr.on('data', data => {
 				stderr += data;
 			});
@@ -160,31 +204,50 @@ export class RetireJsEngine implements RuleEngine {
 					// Convert the output into RuleResult objects and resolve to that.
 					res(this.processOutput(stderr, invocation.rule));
 				} else {
-					// If RetireJS exits with any other code, then it means something went wrong. We'll reject with stderr
-					// for the ease of upstream error handling.
-					rej(stderr);
+					// If RetireJS exits with any other code, then it means something went wrong. The error could be
+					// contained in either stdout or stderr, so we'll send them both to a method for processing, and
+					// reject the string we receive after prefixing it with an informative header.
+					rej(`RetireJS: ${this.processFailure(stdout, stderr)}`);
 				}
 			});
 		});
 	}
 
-	protected processOutput(cmdOutput: string, ruleName: string): RuleResult[] {
-		// The output from the CLI should be a valid JSON.
-		let outputJson = null;
-		try {
-			outputJson = JSON.parse(cmdOutput);
-		} catch (e) {
-			throw new SfdxError(`Could not parse RetireJS output: ${e.message || e}`);
+	protected processFailure(stdout: string, stderr: string): string {
+		this.logger.warn(`Processing RetireJS failure. stdout: ${stdout}\nstderr: ${stderr}`);
+		// Either stdout or stderr could contain the error information, depending on what the error was. We'll try the
+		// same tactics on each one, and hopefully we'll find what we're looking for.
+		for (const o of [stdout, stderr]) {
+			try {
+				// It's possible that we're looking at a valid output JSON whose `errors` property contains the errors we want.
+				const outputJson: RetireJsOutput = RetireJsEngine.convertStringToResultObj(o);
+				if (outputJson.errors && outputJson.errors.length > 0) {
+					// If there are any errors contained within, we should return the first one.
+					this.logger.warn(`Found a valid error JSON, reporting error ${outputJson.errors[0]}`);
+					return outputJson.errors[0];
+				}
+			} catch (e) {
+				// We can swallow errors here, since they just mean this output isn't actually a JSON.
+				this.logger.warn(`Failed to convert output into object: ${e.message || e}`);
+			}
 		}
-		if (RetireJsEngine.validateRetireJsOutput(outputJson)) {
+		// If we're outside of the loop, then neither stdout nor stderr were a JSON. So we should just return stderr
+		// as a string for the ease of upstream error handling.
+		this.logger.warn(`Neither stdout nor stderr contained a valid output object. Returning raw stderr string.`);
+		return stderr;
+	}
+
+	protected processOutput(cmdOutput: string, ruleName: string): RuleResult[] {
+		// The output should be a valid result JSON.
+		try {
+			const outputJson: RetireJsOutput = RetireJsEngine.convertStringToResultObj(cmdOutput);
 			const ruleResultsByFile: Map<string, RuleResult> = new Map();
 			for (const data of outputJson.data) {
 				// First, we need to de-alias the file using the descriptor.
 				const originalFile = this.originalFilesByAlias.get(data.file);
 
 				// Each entry in the `data` array yields a single RuleResult. If we already have a RuleResult associated
-				// with this original file (happens when a ZIP contains multiple insecure files), we'll keep using that.
-				// Otherwise, we need to build a new one.
+				// with this original file, we'll keep using that. Otherwise, we'll have to create a new one.
 				const ruleResult: RuleResult = ruleResultsByFile.has(originalFile)
 					? ruleResultsByFile.get(originalFile)
 					: {
@@ -213,10 +276,9 @@ export class RetireJsEngine implements RuleEngine {
 			}
 			// Once we exit the loop, we can return all of the results in our Map.
 			return Array.from(ruleResultsByFile.values());
-		} else {
-			// It's theoretically impossible to reach this point, because it means that RetireJS finished successfully
-			// but returned something we don't recognize.
-			throw new SfdxError(`retire-js output did not match expected structure`);
+		} catch (e) {
+			// Rethrow any errors as Sfdx errors.
+			throw new SfdxError(e.message || e);
 		}
 	}
 
@@ -230,6 +292,22 @@ export class RetireJsEngine implements RuleEngine {
 				return 1;
 			default:
 				throw new SfdxError(`retire-js encountered unexpected severity value of ${sev}.`);
+		}
+	}
+
+	private static convertStringToResultObj(output: string): RetireJsOutput {
+		// Theoretically, the output is at least a valid JSON.
+		let outputJson = null;
+		try {
+			outputJson = JSON.parse(output);
+		} catch (e) {
+			throw new SfdxError(`Could not parse RetireJS output: ${e.message || e}`);
+		}
+		// If we were able to parse the object, we should then verify that it's actually a RetireJsOutput instance.
+		if (this.validateRetireJsOutput(outputJson)) {
+			return outputJson;
+		} else {
+			throw new SfdxError(`retire-js output did not match expected structure`);
 		}
 	}
 
@@ -267,6 +345,11 @@ export class RetireJsEngine implements RuleEngine {
 		return `TMPFILE_${RetireJsEngine.NEXT_TMPFILE_IDX++}.js`;
 	}
 
+	private getNextZipAlias(): string {
+		return `TMPZIP_${RetireJsEngine.NEXT_TMPZIP_IDX++}`;
+	}
+
+
 	protected async createTmpDirWithDuplicatedTargets(targets: RuleTarget[]): Promise<string> {
 		// Create a temporary parent directory into which we'll transplant all of our target files.
 		const tmpParent: string = await this.fh.tmpDirWithCleanup();
@@ -278,8 +361,10 @@ export class RetireJsEngine implements RuleEngine {
 				// At this point, we can't alias all types of files to the same extent. So we'll use different submethods
 				// to handle them.
 				const ext: string = path.extname(originalPath.toLowerCase());
-				const srType = ext === '.resource' ? await this.srh.identifyStaticResourceType(originalPath) : null;
-				if (ext === '.js' || srType === StaticResourceType.JS) {
+				const srType = ext !== '.js' ? await this.srh.identifyStaticResourceType(originalPath) : null;
+				if (ext === '.js' || srType === StaticResourceType.TEXT) {
+					// Text-based Static Resources must be treated as potential JS files. So we'll copy and alias them
+					// as .js files.
 					this.aliasJsFile(tmpParent, originalPath);
 				} else if (ext === '.zip' || srType === StaticResourceType.ZIP) {
 					this.aliasZipFile(tmpParent, originalPath);
@@ -309,9 +394,9 @@ export class RetireJsEngine implements RuleEngine {
 		// We'll need to derive an aliased subdirectory to duplicate this file into, so we can prevent name collision.
 		const aliasDir: string = this.deriveDirectoryAlias(tmpParent, originalPath);
 
-		// Static Resource files need to be changed to `.js` files so RetireJS can see them. We'll also give them aliases
-		// to make sure that they can't conflict with `.js` files in the same directory.
-		const aliasFile: string = path.extname(originalPath) === '.resource' ? this.getNextFileAlias() : path.basename(originalPath);
+		// Files that aren't explicitly .js need to have their extension changed, otherwise RetireJS can't see them.
+		// We'll also alias them to make sure they can't conflict with actual .js files in the same directory.
+		const aliasFile: string = path.extname(originalPath) !== '.js' ? this.getNextFileAlias() : path.basename(originalPath);
 
 		const fullAlias = path.join(aliasDir, aliasFile);
 
@@ -324,8 +409,8 @@ export class RetireJsEngine implements RuleEngine {
 		const aliasDir: string = this.deriveDirectoryAlias(tmpParent, originalPath);
 
 		// ZIPs require an additional layer of aliasing, since two ZIPs in the same directory could have similar contents.
-		// We'll derive this layer of aliasing based on the name of the ZIP.
-		const zipLayer = `${path.basename(originalPath, path.extname(originalPath))}-extracted`;
+		// We'll derive this alias using a sequential generator to avoid collisions.
+		const zipLayer = this.getNextZipAlias();
 		this.zipDstByZipSrc.set(originalPath, path.join(aliasDir, zipLayer));
 	}
 
@@ -362,37 +447,46 @@ export class RetireJsEngine implements RuleEngine {
 		return Promise.all(dupPromises);
 	}
 
-	protected async extractZips(): Promise<void[]> {
-		const zipExtractionPromises: Promise<void>[] = [];
-		for (const [zipSrc, zipDst] of this.zipDstByZipSrc.entries()) {
-			zipExtractionPromises.push(new Promise((res, rej) => {
-				const zip = new StreamZip({
-					file: zipSrc,
-					storeEntries: true
-				});
+	protected async extractZip(zipSrc: string, zipDst: string): Promise<void> {
+		// Open the ZIP.
+		const zip = new StreamZip.async({
+			file: zipSrc,
+			storeEntries: true
+		});
 
-				zip.on('error', rej);
+		// Not sure why, but this method demands an argument that doesn't seem to be used anywhere. Passing in null.
+		const entries = await zip.entries(null);
+		// Iterate over every entry in the ZIP.
+		for (const {name, isDirectory} of Object.values(entries)) {
+			// Skip directories and non-text files.
+			if (isDirectory || this.srh.identifyBufferType(await zip.entryData(name)) !== StaticResourceType.TEXT) {
+				continue;
+			}
 
-				zip.on('ready', () => {
-					// Before we do the extraction, we want to map the aliased JS files within the ZIP back to the ZIP itself,
-					// since the ZIP is the real original file.
-					for (const {name} of Object.values(zip.entries())) {
-						if (path.extname(name).toLowerCase() === '.js') {
-							this.originalFilesByAlias.set(path.join(zipDst, name), zipSrc);
-						}
-					}
-					// Passing null as the first parameter to this method causes it to extract the entire ZIP.
-					zip.extract(null, zipDst, (err) => {
-						if (err) {
-							rej(err);
-						} else {
-							res();
-						}
-					});
-				});
-			}));
+			// Each zipped text file needs to be mapped to an alias corresponding to its location within the ZIP.
+			// That way, each violation can be tied to an individual file within the ZIP instead of the ZIP as a whole.
+			const originalPath =`${zipSrc}:${name}`;
+
+			// We derive the alias path using the path to the ZIP's alias folder, and any pathing information within the
+			// file itself. If there's no corresponding directory yet, we need to create it.
+			const aliasDir = path.join(zipDst, path.dirname(name));
+			await this.fh.mkdirIfNotExists(aliasDir);
+			// Furthermore, files that aren't already .js files need to be converted during extraction, so they're visible
+			// to RetireJS.
+			const aliasFile = path.extname(name) !== '.js' ? this.getNextFileAlias() : path.basename(name);
+
+			// Combine the two to get our full alias path.
+			const aliasPath = path.join(aliasDir, aliasFile);
+			this.originalFilesByAlias.set(aliasPath, originalPath);
+			await zip.extract(name, aliasPath);
 		}
+		return await zip.close();
+	}
 
-		return Promise.all(zipExtractionPromises);
+	protected async extractZips(): Promise<void[]> {
+		return Promise.all(
+			[...this.zipDstByZipSrc.entries()]
+				.map(([zipSrc, zipDst]) => {return this.extractZip(zipSrc, zipDst)})
+		);
 	}
 }

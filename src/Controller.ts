@@ -3,10 +3,11 @@ import "reflect-metadata";
 import {SfdxError} from '@salesforce/core';
 import {container} from "tsyringe";
 import {Config} from './lib/util/Config';
-import {EnvOverridable, Services} from './Constants';
+import {EnvOverridable, Services, AllowedEngineFilters} from './Constants';
 import {RuleManager} from './lib/RuleManager';
-import {RuleEngine} from './lib/services/RuleEngine'
+import {RuleEngine} from './lib/services/RuleEngine';
 import {RulePathManager} from './lib/RulePathManager';
+import {RuleCatalog} from './lib/services/RuleCatalog';
 
 /**
  * Converts an array of RuleEngines to a sorted, comma delimited
@@ -19,6 +20,12 @@ function enginesToString(engines: RuleEngine[]): string {
 // TODO: This is probably more appropriately called a Factory
 export const Controller = {
 	container,
+
+	getCatalog: async (): Promise<RuleCatalog> => {
+		const catalog = container.resolve<RuleCatalog>(Services.RuleCatalog);
+		await catalog.init();
+		return catalog;
+	},
 
 	getConfig: async (): Promise<Config> => {
 		const config = container.resolve<Config>(Services.Config);
@@ -53,23 +60,23 @@ export const Controller = {
 		return engines;
 	},
 
-	getFilteredEngines: async (filteredNames: string[]): Promise<RuleEngine[]> => {
+	getFilteredEngines: async (filteredNames: string[], engineOptions: Map<string, string> = new Map()): Promise<RuleEngine[]> => {
 		const allEngines: RuleEngine[] = await Controller.getAllEngines();
-		const engines = allEngines.filter(e => filteredNames.includes(e.getName()));
+		const engines = allEngines.filter(e => e.isEngineRequested(filteredNames, engineOptions));
 
 		if (engines.length == 0) {
-			throw SfdxError.create('@salesforce/sfdx-scanner', 'Controller', 'NoFilteredEnginesFound', [filteredNames.join(','), enginesToString(allEngines)]);
+			throw SfdxError.create('@salesforce/sfdx-scanner', 'Controller', 'NoFilteredEnginesFound', [filteredNames.join(','), AllowedEngineFilters.sort().join(', ')]);
 		}
 
 		return engines;
 	},
 
-	getEnabledEngines: async (): Promise<RuleEngine[]> => {
+	getEnabledEngines: async (engineOptions: Map<string,string> = new Map()): Promise<RuleEngine[]> => {
 		const allEngines: RuleEngine[] = await Controller.getAllEngines();
 		const engines: RuleEngine[] = [];
 
 		for (const engine of allEngines) {
-			if (await engine.isEnabled()) {
+			if (await engine.isEnabled() && engine.isEngineRequested([/*no filter values*/], engineOptions)) {
 				engines.push(engine);
 			}
 		}

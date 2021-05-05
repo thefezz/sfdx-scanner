@@ -3,6 +3,108 @@ title: Release Information
 lang: en
 ---
 
+### To update the plugin, please follow the linked  [instructions](./en/getting-started/install/#upgrade-plug-in).
+
+## [v2.8.0](https://github.com/forcedotcom/sfdx-scanner/tree/v2.8.0)
+
+[Full Changelog](https://github.com/forcedotcom/sfdx-scanner/compare/v2.7.0...v2.8.0)
+
+**Closed issues:**
+
+- \[Feature Request\] CHANGELOG [\#371](https://github.com/forcedotcom/sfdx-scanner/issues/371)
+
+**Merged pull requests:**
+
+- @W-9086306@ Upgrading to PMD 6.33.0 [\#379](https://github.com/forcedotcom/sfdx-scanner/pull/379)
+- @W-9090976@ Bump y18n from 4.0.0 to 4.0.1 [\#377](https://github.com/forcedotcom/sfdx-scanner/pull/377)
+- @W-9090976@ Bump kramdown from 2.3.0 to 2.3.1 in /docs [\#376](https://github.com/forcedotcom/sfdx-scanner/pull/376)
+
+## [v2.7.0](https://github.com/forcedotcom/sfdx-scanner/tree/v2.7.0) (03-17-2021)
+
+[Full Changelog](https://github.com/forcedotcom/sfdx-scanner/compare/v2.6.0...v2.7.0)
+
+**Closed issues:**
+
+- \[BUG\] [\#366](https://github.com/forcedotcom/sfdx-scanner/issues/366)
+- eslint: Parsing error: Unexpected character '@' [\#360](https://github.com/forcedotcom/sfdx-scanner/issues/360)
+
+**Merged pull requests:**
+
+- @W-8902730@: ZIPs containing directories are now properly handled. [\#368](https://github.com/forcedotcom/sfdx-scanner/pull/368)
+- @W-8675055@: Fixed some issues with the documentation. [\#367](https://github.com/forcedotcom/sfdx-scanner/pull/367)
+- @W-8675055@ Changes to docs for supported languages \(PMD\) [\#365](https://github.com/forcedotcom/sfdx-scanner/pull/365)
+- @W-895007@ Upgrade PMD from 6.31.0 to 6.32.0 [\#364](https://github.com/forcedotcom/sfdx-scanner/pull/364)
+- @W-8956131@: Implemented versioning schema to allow easy upgrades. [\#363](https://github.com/forcedotcom/sfdx-scanner/pull/363)
+- @W-8914422@: RetireJS is now better at identifying static resources and scanning the contents of ZIPs. [\#362](https://github.com/forcedotcom/sfdx-scanner/pull/362)
+- @W-8902730@: RetireJS violations within a ZIP are now associated with… [\#361](https://github.com/forcedotcom/sfdx-scanner/pull/361)
+- @W-8903300@ DOC: Remove warning 'not digitally signed' [\#359](https://github.com/forcedotcom/sfdx-scanner/pull/359)
+
+## [v2.6.0](https://github.com/forcedotcom/sfdx-scanner/tree/v2.6.0) (02-17-2021)
+
+[Full Changelog](https://github.com/forcedotcom/sfdx-scanner/compare/v2.5.1...v2.6.0)
+
+### Release Summary
+
+* Support for SARIF JSON Format
+* Underlying PMD Engine is upgraded to 6.31.0 (from 6.30.0) 
+* RetireJS upgraded to v2.2.4
+
+**Closed issues:**
+
+- Support SARIF JSON Format [\#309](https://github.com/forcedotcom/sfdx-scanner/issues/309)
+
+**Merged pull requests:**
+
+- @W-8629051@: trees and pmd-scala JARs are now properly removed from d… [\#352](https://github.com/forcedotcom/sfdx-scanner/pull/352)
+- @W-8553897@ Add sarif formatter [\#350](https://github.com/forcedotcom/sfdx-scanner/pull/350)
+- @W-8841422@: Updating RetireJS to v2.2.4. [\#349](https://github.com/forcedotcom/sfdx-scanner/pull/349)
+- @W-8841422@: RetireJS now determines file eligibility by checking con… [\#348](https://github.com/forcedotcom/sfdx-scanner/pull/348)
+- @W-8629051@: Pulled the trigger on PMD language deprecation, and excl… [\#344](https://github.com/forcedotcom/sfdx-scanner/pull/344)
+
+
+## [v2.5.1](https://github.com/forcedotcom/sfdx-scanner/tree/v2.5.1) (01-20-2021)
+
+[Full Changelog](https://github.com/forcedotcom/sfdx-scanner/compare/v2.4.0...v2.5.1)
+
+### Release Summary
+
+* Changes to allow custom config for PMD and Eslint
+* Added enhanced summary message to the end of all flows
+* We now intercept all PMD errors and convert them into rule violations
+* Underlying PMD Engine is upgraded to 6.30.0 (from 6.29.0)
+* Bug fixes 
+
+**Closed issues:**
+
+- Enable eslintrc rules to be used by default for JS files [\#330](https://github.com/forcedotcom/sfdx-scanner/issues/330)
+- Invalid Java Home [\#316](https://github.com/forcedotcom/sfdx-scanner/issues/316)
+- XML validation throws warning at PMDException [\#277](https://github.com/forcedotcom/sfdx-scanner/issues/277)
+- eslint-lwc engine not running by default on scanner:run [\#276](https://github.com/forcedotcom/sfdx-scanner/issues/276)
+- Internal error running scanner commands from VS Code terminal with custom rules [\#261](https://github.com/forcedotcom/sfdx-scanner/issues/261)
+- Let standard PMD rules be disabled by config file/args [\#246](https://github.com/forcedotcom/sfdx-scanner/issues/246)
+- @W-8046146@ Digitally Sign the Plugin [\#241](https://github.com/forcedotcom/sfdx-scanner/issues/241)
+- The Scanner should \(only\) use each engine default configs/rulesets [\#248](https://github.com/forcedotcom/sfdx-scanner/issues/248)
+
+**Merged pull requests:**
+
+- @W-8668445@: Removing PLSQL from the list of fully supported languages. [\#333](https://github.com/forcedotcom/sfdx-scanner/pull/333)
+- @W-8668445@: Added soft warning for languages we plan on deprecating. [\#331](https://github.com/forcedotcom/sfdx-scanner/pull/331)
+- @W-8115400@: Added new fields to Describe output. [\#328](https://github.com/forcedotcom/sfdx-scanner/pull/328)
+- @W-8578721@: Updated PMD to 6.30.0. [\#327](https://github.com/forcedotcom/sfdx-scanner/pull/327)
+- @W-8565689@: Updated error messages about javaHome identification fai… [\#326](https://github.com/forcedotcom/sfdx-scanner/pull/326)
+- @W-8615780@: Changed the way parsing errors are handled so it is consistent across engines. [\#324](https://github.com/forcedotcom/sfdx-scanner/pull/324)
+- @W-8559396@ Fixing engine selection bug and adding more end to end tests [\#321](https://github.com/forcedotcom/sfdx-scanner/pull/321)
+- @W-8033718@: Rules that are extended by other rules are now excluded from catalog generation. Same with deprecated rules. [\#320](https://github.com/forcedotcom/sfdx-scanner/pull/320)
+- @W-8517960@: Updated documentation for eslint custom configuration to… [\#311](https://github.com/forcedotcom/sfdx-scanner/pull/311)
+- @W-8497246@: We now intercept arcane PMD errors and convert them into… [\#310](https://github.com/forcedotcom/sfdx-scanner/pull/310)
+- @W-8388246@: Added enhanced summary message to the end of all flows. [\#306](https://github.com/forcedotcom/sfdx-scanner/pull/306)
+- @W-7992418@ Allow negated category filtering [\#305](https://github.com/forcedotcom/sfdx-scanner/pull/305)
+- @W-8266225@ Documentation for Custom config [\#301](https://github.com/forcedotcom/sfdx-scanner/pull/301)
+- @W-8266225@ Changes to allow custom config for PMD and Eslint [\#297](https://github.com/forcedotcom/sfdx-scanner/pull/297)
+- @W-8340323@: Added tentative documentation for PMD, and ESLint variants. [\#294](https://github.com/forcedotcom/sfdx-scanner/pull/294)
+- @W-8332099@: Changed the way we handle errors from RetireJS. [\#284](https://github.com/forcedotcom/sfdx-scanner/pull/284)
+
+
 ## [v2.4.0](https://github.com/forcedotcom/sfdx-scanner/tree/v2.4.0) (11-04-2020)
 
 [Full Changelog](https://github.com/forcedotcom/sfdx-scanner/compare/v2.3.0...v2.4.0)

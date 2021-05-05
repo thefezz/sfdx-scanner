@@ -1,10 +1,16 @@
 import {expect} from 'chai';
 import Sinon = require('sinon');
+import {Messages} from '@salesforce/core';
 import {Config} from '../../../src/lib/util/Config';
 import {LANGUAGE} from '../../../src/Constants';
 import * as PmdLanguageManager from '../../../src/lib/pmd/PmdLanguageManager';
 import messages = require('../../../messages/PmdLanguageManager');
 import { ENGINE } from '../../../src/Constants';
+import * as TestOverrides from '../../test-related-lib/TestOverrides';
+
+TestOverrides.initializeTestSetup();
+
+Messages.importMessagesDirectory(__dirname);
 
 describe('PmdLanguageManager', () => {
 	describe('getSupportedLanguages()', () => {
@@ -28,7 +34,7 @@ describe('PmdLanguageManager', () => {
 		});
 
 		describe('When Config specifies weirdly aliased language names', () => {
-			const weirdlyAliasedLangs = ['ApEx', 'JaVa', 'Pl/SqL'];
+			const weirdlyAliasedLangs = ['ApEx', 'JaVa', 'ViSuAlFoRcE'];
 
 			before(() => {
 				Sinon.createSandbox();
@@ -42,7 +48,7 @@ describe('PmdLanguageManager', () => {
 
 			it('Aliases are successfully resolved into a viable language name', async () => {
 				const langs = await PmdLanguageManager.getSupportedLanguages();
-				expect(langs).to.deep.equal([LANGUAGE.APEX, LANGUAGE.JAVA, LANGUAGE.PLSQL], 'Aliases to languages should have been resolved');
+				expect(langs).to.deep.equal([LANGUAGE.APEX, LANGUAGE.JAVA, 'visualforce'], 'Aliases to languages should have been resolved');
 			});
 		});
 
