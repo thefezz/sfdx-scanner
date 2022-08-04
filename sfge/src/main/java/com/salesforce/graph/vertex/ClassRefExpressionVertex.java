@@ -5,6 +5,8 @@ import com.salesforce.graph.ops.ApexStandardLibraryUtil;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 public final class ClassRefExpressionVertex extends TODO_FIX_HIERARCHY_ChainedVertex
@@ -36,5 +38,10 @@ public final class ClassRefExpressionVertex extends TODO_FIX_HIERARCHY_ChainedVe
     @Override
     public String getCanonicalType() {
         return ApexStandardLibraryUtil.getCanonicalName(getString(Schema.TYPE_REF));
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

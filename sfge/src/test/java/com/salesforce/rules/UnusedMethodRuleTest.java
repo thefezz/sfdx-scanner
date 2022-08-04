@@ -823,9 +823,9 @@ public class UnusedMethodRuleTest {
     // (NOTE: No need for a `protected` case, since methods can't be both
     // `protected` and `static`.)
     @ValueSource(
-            strings = {"staticMethod()", "ParentClass.staticMethod()", "ChildClass.staticMethod()"})
+            strings = {/*"staticMethod()", "ParentClass.staticMethod()", */"ChildClass.staticMethod()"})
     @ParameterizedTest(name = "{displayName}: {0}")
-    @Disabled
+//    @Disabled
     public void staticMethodInvokedInSubclassInnerClass_expectNoViolation(String invocation) {
         String[] sourceCodes = {
             "global virtual class ParentClass {\n"
@@ -1294,92 +1294,117 @@ public class UnusedMethodRuleTest {
                 });
     }
 
+    @Test
+    public void beep() {
+        String[] sourceCode = {
+            "public class MyClass {\n"
+                + "    private boolean doTheThing(Object i) {\n"
+                + "        return true;\n"
+                + "    }\n"
+                + "    /* sfge-disable-stack UnusedMethodRule */\n"
+                + "    public boolean invoker() {\n"
+                + "        integer a = 8;\n"
+                + "        integer b = 7;\n"
+                + "        return doTheThing(((SomeObject) new OtherObject()).intProp);\n"
+                + "    }\n"
+                + "}\n",
+            "public virtual class SomeObject {"
+                + "    public Integer intProp;\n"
+                + "    \n"
+                + "}\n",
+            "public virtual class OtherObject extends SomeObject {"
+                + "}\n"
+        };
+        assertNoViolations(sourceCode);
+    }
+
     /**
      * If there's different overloads of an instance method, then only the ones that are actually
      * invoked count as used. Specific case: Methods with the same arity, but different signatures.
      */
     @CsvSource({
-        // Specify the beginning line of the overload that WASN'T called.
-        // One test per method, per argument source.
-        // Argument sources are:
-        // - Literal values
-        "overloadedMethod(42),  11",
-        "overloadedMethod(true),  8",
-        // - Method parameters (and their instance properties/methods)
-        "overloadedMethod(iParam),  11",
-        "overloadedMethod(bParam),  8",
-        "overloadedMethod(phcParam.iExternalInstanceProp),  11",
-        "overloadedMethod(phcParam.getIntegerProp()),  11",
-        "overloadedMethod(phcParam.bExternalInstanceProp),  8",
-        "overloadedMethod(phcParam.getBooleanProp()),  8",
-        // - Variables (and their instance properties/methods)
-        "overloadedMethod(iVar),  11",
-        "overloadedMethod(bVar),  8",
-        "overloadedMethod(phcVar.iExternalInstanceProp),  11",
-        "overloadedMethod(phcVar.getIntegerProp()),  11",
-        "overloadedMethod(phcVar.bExternalInstanceProp),  8",
-        "overloadedMethod(phcVar.getBooleanProp()),  8",
-        // - Internal instance method returns (and their instance properties/methods)
-        "overloadedMethod(intReturner()),  11",
-        "overloadedMethod(this.intReturner()),  11",
-        "overloadedMethod(boolReturner()),  8",
-        "overloadedMethod(this.boolReturner()),  8",
-        "overloadedMethod(phcReturner().iExternalInstanceProp),  11",
-        "overloadedMethod(this.phcReturner().iExternalInstanceProp),  11",
-        "overloadedMethod(phcReturner().getIntegerProp()),  11",
-        "overloadedMethod(this.phcReturner().getIntegerProp()),  11",
-        "overloadedMethod(phcReturner().bExternalInstanceProp),  8",
-        "overloadedMethod(this.phcReturner().bExternalInstanceProp),  8",
-        "overloadedMethod(phcReturner().getBooleanProp()),  8",
-        "overloadedMethod(this.phcReturner().getBooleanProp()),  8",
-        // - Internal instance properties (and their instance properties/methods)
-        "overloadedMethod(iInstanceProp),  11",
-        "overloadedMethod(this.iInstanceProp),  11",
-        "overloadedMethod(bInstanceProp),  8",
-        "overloadedMethod(this.bInstanceProp),  8",
-        "overloadedMethod(phcInstanceProp.iExternalInstanceProp),  11",
-        "overloadedMethod(this.phcInstanceProp.iExternalInstanceProp),  11",
-        "overloadedMethod(phcInstanceProp.getIntegerProp()),  11",
-        "overloadedMethod(this.phcInstanceProp.getIntegerProp()),  11",
-        "overloadedMethod(phcInstanceProp.bExternalInstanceProp),  8",
-        "overloadedMethod(this.phcInstanceProp.bExternalInstanceProp),  8",
-        "overloadedMethod(phcInstanceProp.getBooleanProp()),  8",
-        "overloadedMethod(this.phcInstanceProp.getBooleanProp()),  8",
-        // - Internal static method returns (and their instance properties/methods)
-        "overloadedMethod(staticIntReturner()),  11",
-        "overloadedMethod(MethodHostClass.staticIntReturner()),  11",
-        "overloadedMethod(staticBoolReturner()),  8",
-        "overloadedMethod(MethodHostClass.staticBoolReturner()),  8",
-        "overloadedMethod(staticPhcReturner().iExternalInstanceProp),  11",
-        "overloadedMethod(MethodHostClass.staticPhcReturner().iExternalInstanceProp),  11",
-        "overloadedMethod(staticPhcReturner().getIntegerProp()),  11",
-        "overloadedMethod(MethodHostClass.staticPhcReturner().getIntegerProp()),  11",
-        "overloadedMethod(staticPhcReturner().bExternalInstanceProp),  8",
-        "overloadedMethod(MethodHostClass.staticPhcReturner().bExternalInstanceProp),  8",
-        "overloadedMethod(staticPhcReturner().getBooleanProp()),  8",
-        "overloadedMethod(MethodHostClass.staticPhcReturner().getBooleanProp()),  8",
-        // - Internal static properties (and their instance properties/methods)
-        "overloadedMethod(iStaticProp),  11",
-        "overloadedMethod(MethodHostClass.iStaticProp),  11",
-        "overloadedMethod(bStaticProp),  8",
-        "overloadedMethod(MethodHostClass.bStaticProp),  8",
-        "overloadedMethod(phcStaticProp.iExternalInstanceProp),  11",
-        "overloadedMethod(MethodHostClass.phcStaticProp.iExternalInstanceProp),  11",
-        "overloadedMethod(phcStaticProp.getIntegerProp()),  11",
-        "overloadedMethod(MethodHostClass.phcStaticProp.getIntegerProp()),  11",
-        "overloadedMethod(phcStaticProp.bExternalInstanceProp),  8",
-        "overloadedMethod(MethodHostClass.phcStaticProp.bExternalInstanceProp),  8",
-        "overloadedMethod(phcStaticProp.getBooleanProp()),  8",
-        "overloadedMethod(MethodHostClass.phcStaticProp.getBooleanProp()),  8",
-        // - External static instance properties
-        "overloadedMethod(PropertyHostClass.iExternalStaticProp),  11",
-        "overloadedMethod(PropertyHostClass.bExternalStaticProp),  8"
+//        // Specify the beginning line of the overload that WASN'T called.
+//        // One test per method, per argument source.
+//        // Argument sources are:
+//        // - Literal values
+//        "overloadedMethod(42),  11",
+//        "overloadedMethod(true),  8",
+//        // - Method parameters (and their instance properties/methods)
+//        "overloadedMethod(iParam),  11",
+//        "overloadedMethod(bParam),  8",
+//        "'overloadedMethod(new List<boolean>{true, true, true})',  11",
+        "overloadedMethod(phcVar.otherInstance.otherInstance.getSelf().getSelf().otherInstance.getSelf().otherInstance.otherInstance.otherInstance.iExternalInstanceProp),  11",
+//        "overloadedMethod(phcParam.getIntegerProp()),  11",
+//        "overloadedMethod(phcParam.bExternalInstanceProp),  8",
+//        "overloadedMethod(phcParam.getBooleanProp()),  8",
+//        // - Variables (and their instance properties/methods)
+//        "overloadedMethod(iVar),  11",
+//        "overloadedMethod(bVar),  8",
+//        "overloadedMethod(phcVar.iExternalInstanceProp),  11",
+//        "overloadedMethod(phcVar.getIntegerProp()),  11",
+//        "overloadedMethod(phcVar.bExternalInstanceProp),  8",
+//        "overloadedMethod(phcVar.getBooleanProp()),  8",
+//        // - Internal instance method returns (and their instance properties/methods)
+//        "overloadedMethod(intReturner()),  11",
+//        "overloadedMethod(this.intReturner()),  11",
+//        "overloadedMethod(boolReturner()),  8",
+//        "overloadedMethod(this.boolReturner()),  8",
+//        "overloadedMethod(phcReturner().iExternalInstanceProp),  11",
+//        "overloadedMethod(this.phcReturner().iExternalInstanceProp),  11",
+//        "overloadedMethod(phcReturner().getIntegerProp()),  11",
+//        "overloadedMethod(this.phcReturner().getIntegerProp()),  11",
+//        "overloadedMethod(phcReturner().bExternalInstanceProp),  8",
+//        "overloadedMethod(this.phcReturner().bExternalInstanceProp),  8",
+//        "overloadedMethod(phcReturner().getBooleanProp()),  8",
+//        "overloadedMethod(this.phcReturner().getBooleanProp()),  8",
+//        // - Internal instance properties (and their instance properties/methods)
+//        "overloadedMethod(iInstanceProp),  11",
+//        "overloadedMethod(this.iInstanceProp),  11",
+//        "overloadedMethod(bInstanceProp),  8",
+//        "overloadedMethod(this.bInstanceProp),  8",
+//        "overloadedMethod(phcInstanceProp.iExternalInstanceProp),  11",
+//        "overloadedMethod(this.phcInstanceProp.iExternalInstanceProp),  11",
+//        "overloadedMethod(phcInstanceProp.getIntegerProp()),  11",
+//        "overloadedMethod(this.phcInstanceProp.getIntegerProp()),  11",
+//        "overloadedMethod(phcInstanceProp.bExternalInstanceProp),  8",
+//        "overloadedMethod(this.phcInstanceProp.bExternalInstanceProp),  8",
+//        "overloadedMethod(phcInstanceProp.getBooleanProp()),  8",
+//        "overloadedMethod(this.phcInstanceProp.getBooleanProp()),  8",
+//        // - Internal static method returns (and their instance properties/methods)
+//        "overloadedMethod(staticIntReturner()),  11",
+//        "overloadedMethod(MethodHostClass.staticIntReturner()),  11",
+//        "overloadedMethod(staticBoolReturner()),  8",
+//        "overloadedMethod(MethodHostClass.staticBoolReturner()),  8",
+//        "overloadedMethod(staticPhcReturner().iExternalInstanceProp),  11",
+//        "overloadedMethod(MethodHostClass.staticPhcReturner().iExternalInstanceProp),  11",
+//        "overloadedMethod(staticPhcReturner().getIntegerProp()),  11",
+//        "overloadedMethod(MethodHostClass.staticPhcReturner().getIntegerProp()),  11",
+//        "overloadedMethod(staticPhcReturner().bExternalInstanceProp),  8",
+//        "overloadedMethod(MethodHostClass.staticPhcReturner().bExternalInstanceProp),  8",
+//        "overloadedMethod(staticPhcReturner().getBooleanProp()),  8",
+//        "overloadedMethod(MethodHostClass.staticPhcReturner().getBooleanProp()),  8",
+//        // - Internal static properties (and their instance properties/methods)
+//        "overloadedMethod(iStaticProp),  11",
+//        "overloadedMethod(MethodHostClass.iStaticProp),  11",
+//        "overloadedMethod(bStaticProp),  8",
+//        "overloadedMethod(MethodHostClass.bStaticProp),  8",
+//        "overloadedMethod(phcStaticProp.iExternalInstanceProp),  11",
+//        "overloadedMethod(MethodHostClass.phcStaticProp.iExternalInstanceProp),  11",
+//        "overloadedMethod(phcStaticProp.getIntegerProp()),  11",
+//        "overloadedMethod(MethodHostClass.phcStaticProp.getIntegerProp()),  11",
+//        "overloadedMethod(phcStaticProp.bExternalInstanceProp),  8",
+//        "overloadedMethod(MethodHostClass.phcStaticProp.bExternalInstanceProp),  8",
+//        "overloadedMethod(phcStaticProp.getBooleanProp()),  8",
+//        "overloadedMethod(MethodHostClass.phcStaticProp.getBooleanProp()),  8",
+//        // - External static instance properties
+//        "overloadedMethod(PropertyHostClass.iExternalStaticProp),  11",
+//        "overloadedMethod(PropertyHostClass.bExternalStaticProp),  8"
     })
     @ParameterizedTest(name = "{displayName}: invocation of {0}")
     public void callInstanceMethodWithDifferentSignatureOverloads_expectViolation(
             String invocation, int uncalledBeginLine) {
         String[] sourceCodes = {
-            "global class MethodHostClass {\n"
+            "global virtual class MethodHostClass {\n"
                     + "    private static integer iStaticProp = 42;\n"
                     + "    private static boolean bStaticProp = false;\n"
                     + "    private static PropertyHostClass phcStaticProp = new PropertyHostClass();\n"
@@ -1392,6 +1417,12 @@ public class UnusedMethodRuleTest {
                     + "    private boolean overloadedMethod(boolean b) {\n"
                     + "        return b;\n"
                     + "    }\n"
+                    + "    private boolean overloadedMethod(List<Integer> b) {\n"
+                    + "        return b.get(0);\n"
+                    + "    }\n"
+                + "    private boolean overloadedMethod(List<Boolean> b) {\n"
+                + "        return b.get(0);\n"
+                + "    }\n"
                     // Use the engine directive to prevent this method from tripping the rule.
                     + "    /* sfge-disable-stack UnusedMethodRule */\n"
                     + "    public integer intReturner() {\n"
@@ -1431,11 +1462,14 @@ public class UnusedMethodRuleTest {
                     + String.format("        return %s;\n", invocation)
                     + "    }\n"
                     + "}\n",
+            "global class MethodHostChild extends MethodHostClass {\n"
+                    + "}\n",
             "global class PropertyHostClass {\n"
                     + "    public static integer iExternalStaticProp = 11;\n"
                     + "    public static boolean bExternalStaticProp = false;\n"
                     + "    public integer iExternalInstanceProp = 9;\n"
                     + "    public boolean bExternalInstanceProp = true;\n"
+                    + "    public PropertyHostClass otherInstance = null;\n"
                     + "    /* sfge-disable-stack UnusedMethodRule */\n"
                     + "    public integer getIntegerProp() {\n"
                     + "        return iExternalInstanceProp;\n"
@@ -1444,6 +1478,10 @@ public class UnusedMethodRuleTest {
                     + "    public boolean getBooleanProp() {\n"
                     + "        return bExternalInstanceProp;\n"
                     + "    }\n"
+                + "    /* sfge-disable-stack UnusedMethodRule */\n"
+                + "    public PropertyHostClass getSelf() {\n"
+                + "        return this;\n"
+                + "    }\n"
                     + "}\n"
         };
         assertViolations(

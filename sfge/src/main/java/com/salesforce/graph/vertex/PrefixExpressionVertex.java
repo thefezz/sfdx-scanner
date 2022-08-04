@@ -5,6 +5,8 @@ import com.salesforce.graph.Schema;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 public final class PrefixExpressionVertex extends TODO_FIX_HIERARCHY_ChainedVertex
@@ -44,5 +46,10 @@ public final class PrefixExpressionVertex extends TODO_FIX_HIERARCHY_ChainedVert
 
     public boolean isOperatorNegation() {
         return ASTConstants.OPERATOR_NEGATE.equals(getOperator());
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

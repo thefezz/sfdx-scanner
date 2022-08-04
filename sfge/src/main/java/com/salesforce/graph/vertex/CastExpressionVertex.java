@@ -4,6 +4,8 @@ import com.salesforce.graph.Schema;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 public class CastExpressionVertex extends ChainedVertex implements Typeable {
@@ -38,5 +40,10 @@ public class CastExpressionVertex extends ChainedVertex implements Typeable {
 
     public ChainedVertex getCastedVertex() {
         return getChild(0);
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

@@ -5,6 +5,8 @@ import com.salesforce.graph.ops.ApexStandardLibraryUtil;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 public class FieldVertex extends FieldWithModifierVertex implements NamedVertex, Typeable {
@@ -48,5 +50,10 @@ public class FieldVertex extends FieldWithModifierVertex implements NamedVertex,
 
     public boolean hasSetterBlock() {
         return getBoolean(Schema.HAS_SETTER_METHOD_BLOCK);
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

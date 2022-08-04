@@ -5,6 +5,8 @@ import com.salesforce.graph.Schema;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 import java.util.Optional;
 
@@ -76,5 +78,10 @@ public class ReferenceExpressionVertex extends AbstractReferenceExpressionVertex
                         g().V(getId())
                                 .out(Schema.CHILD)
                                 .hasLabel(ASTConstants.NodeType.CLASS_REF_EXPRESSION));
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

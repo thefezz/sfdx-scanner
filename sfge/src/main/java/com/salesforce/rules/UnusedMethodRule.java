@@ -1,10 +1,12 @@
 package com.salesforce.rules;
 
+import com.salesforce.apex.jorje.ASTConstants;
 import com.salesforce.apex.jorje.ASTConstants.NodeType;
 import com.salesforce.collections.CollectionUtil;
 import com.salesforce.exception.UnexpectedException;
 import com.salesforce.graph.Schema;
 import com.salesforce.graph.build.CaseSafePropertyUtil.H;
+import com.salesforce.graph.ops.ParameterUtil;
 import com.salesforce.graph.ops.PathEntryPointUtil;
 import com.salesforce.graph.ops.directive.EngineDirective;
 import com.salesforce.graph.vertex.*;
@@ -23,6 +25,12 @@ public class UnusedMethodRule extends AbstractStaticRule {
     private static final String DESCRIPTION = "Identifies methods that are not invoked";
     GraphTraversalSource g;
     /**
+     * For tests, it's helpful to track every method that was considered to be a candidate
+     * for analysis, so we can determine whether a given method was actively determined
+     * to be used somewhere, or simply never analyzed at all.
+     */
+    private final Set<MethodVertex> candidateMethods;
+    /**
      * The set of methods for which no invocation was detected. At the end of execution, we'll
      * generate violations from each method in this set.
      */
@@ -35,6 +43,7 @@ public class UnusedMethodRule extends AbstractStaticRule {
 
     private UnusedMethodRule() {
         super();
+        this.candidateMethods = new HashSet<>();
         this.unusedMethods = new HashSet<>();
         this.internalMethodCallsByDefiningType = CollectionUtil.newTreeMap();
     }
@@ -79,6 +88,7 @@ public class UnusedMethodRule extends AbstractStaticRule {
 
     private void reset(GraphTraversalSource g) {
         this.g = g;
+        this.candidateMethods.clear();
         this.unusedMethods.clear();
         this.internalMethodCallsByDefiningType.clear();
     }
@@ -101,6 +111,7 @@ public class UnusedMethodRule extends AbstractStaticRule {
                 }
                 continue;
             }
+            this.candidateMethods.add(candidateVertex);
 
             // Check first for internal usage of the method.
             if (methodUsedInternally(candidateVertex)) {
@@ -122,11 +133,19 @@ public class UnusedMethodRule extends AbstractStaticRule {
         (!vertex.isPrivate() || vertex.isStatic() || vertex.isConstructor())
                 // If we're directed to skip this method, then we should obviously do so.
                 || directedToSkip(vertex)
-                // Abstract methods are ineligible.
+                // Abstract methods must be implemented by all child classes.
+                // This rule can detect if those implementations are never used,
+                // and we have other rules to detect unused abstract classes/interfaces.
+                // As such, inspecting abstract methods is unnecessary.
                 || vertex.isAbstract()
-                // Methods whose name starts with "__sfdc_" are getters/setters, and are ineligible.
-                || vertex.getName().toLowerCase().startsWith("__sfdc_")
-                // Path entry points should be skipped.
+                // Methods whose name starts with this prefix are getters/setters.
+                // Getters are typically used by VF controllers, and setters are frequently
+                // made private to render a property unchangeable.
+                // As such, inspecting these methods is likely to generate false or noisy
+                // positives.
+                || vertex.getName().toLowerCase().startsWith(ASTConstants.PROPERTY_METHOD_PREFIX)
+                // Path entry points should be skipped, since they're definitionally publicly
+                // accessible and should be assumed to be used somewhere or other.
                 || PathEntryPointUtil.isPathEntryPoint(vertex);
     }
 

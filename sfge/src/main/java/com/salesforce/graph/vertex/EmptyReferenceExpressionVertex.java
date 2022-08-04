@@ -3,6 +3,8 @@ package com.salesforce.graph.vertex;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 public class EmptyReferenceExpressionVertex extends AbstractReferenceExpressionVertex {
@@ -28,5 +30,10 @@ public class EmptyReferenceExpressionVertex extends AbstractReferenceExpressionV
     @Override
     public void afterVisit(SymbolProviderVertexVisitor visitor) {
         visitor.afterVisit(this);
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

@@ -4,6 +4,8 @@ import com.salesforce.apex.jorje.ASTConstants;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 /** Contains a list of literals or variables. */
@@ -40,5 +42,10 @@ public class NewListLiteralExpressionVertex extends AbstractCollectionExpression
     @Override
     public boolean isResolvable() {
         return false;
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

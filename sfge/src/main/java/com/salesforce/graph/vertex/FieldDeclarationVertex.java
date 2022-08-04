@@ -5,6 +5,8 @@ import com.salesforce.graph.ops.ApexStandardLibraryUtil;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 public class FieldDeclarationVertex extends DeclarationVertex implements Typeable {
@@ -44,5 +46,10 @@ public class FieldDeclarationVertex extends DeclarationVertex implements Typeabl
     @Override
     public String getCanonicalType() {
         return ApexStandardLibraryUtil.getCanonicalName(getString(Schema.TYPE));
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

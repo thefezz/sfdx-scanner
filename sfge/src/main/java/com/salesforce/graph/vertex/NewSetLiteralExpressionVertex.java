@@ -6,6 +6,8 @@ import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
 import java.util.Locale;
 import java.util.Map;
+
+import com.salesforce.graph.visitor.TypedVertexVisitor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -66,5 +68,10 @@ public class NewSetLiteralExpressionVertex extends AbstractCollectionExpressionV
                             + ")");
         }
         return false;
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

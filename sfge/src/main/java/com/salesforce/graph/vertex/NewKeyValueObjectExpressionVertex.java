@@ -7,6 +7,8 @@ import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
 import java.util.List;
 import java.util.Map;
+
+import com.salesforce.graph.visitor.TypedVertexVisitor;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 
@@ -62,5 +64,10 @@ public class NewKeyValueObjectExpressionVertex extends ChainedVertex implements 
                                 .order(Scope.global)
                                 .by(Schema.CHILD_INDEX, Order.asc),
                 ExpressionType.KEY_VALUE);
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

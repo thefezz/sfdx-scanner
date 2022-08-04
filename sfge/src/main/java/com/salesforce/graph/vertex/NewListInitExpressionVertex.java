@@ -4,6 +4,8 @@ import com.salesforce.apex.jorje.ASTConstants;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 /** Example Apex: {@code List<SelectOption> options = new List<SelectOption>(); } */
@@ -35,5 +37,10 @@ public class NewListInitExpressionVertex extends AbstractCollectionExpressionVer
     @Override
     public String getTypePrefix() {
         return ASTConstants.TypePrefix.LIST;
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

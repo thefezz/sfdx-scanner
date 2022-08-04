@@ -5,6 +5,8 @@ import com.salesforce.graph.Schema;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +54,11 @@ public abstract class LiteralExpressionVertex<T> extends ChainedVertex
 
     public final String getLiteralAsString() {
         return getString(Schema.VALUE);
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
     private abstract static class BooleanLiteralExpressionVertex

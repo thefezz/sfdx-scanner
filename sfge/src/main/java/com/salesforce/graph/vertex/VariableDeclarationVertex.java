@@ -5,6 +5,8 @@ import com.salesforce.graph.ops.ApexStandardLibraryUtil;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.SymbolProviderVertexVisitor;
 import com.salesforce.graph.visitor.PathVertexVisitor;
+import com.salesforce.graph.visitor.TypedVertexVisitor;
+
 import java.util.Map;
 
 public class VariableDeclarationVertex extends DeclarationVertex implements NamedVertex, Typeable {
@@ -40,5 +42,10 @@ public class VariableDeclarationVertex extends DeclarationVertex implements Name
     @Override
     public String getCanonicalType() {
         return ApexStandardLibraryUtil.getCanonicalName(getString(Schema.TYPE));
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

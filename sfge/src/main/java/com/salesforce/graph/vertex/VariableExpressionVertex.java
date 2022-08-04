@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+
+import com.salesforce.graph.visitor.TypedVertexVisitor;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -266,6 +268,11 @@ public abstract class VariableExpressionVertex extends ChainedVertex
 
             return new MethodInvocationScope(this, apexValueParameters);
         }
+
+        @Override
+        public <T> T accept(TypedVertexVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
     }
 
     /**
@@ -422,6 +429,11 @@ public abstract class VariableExpressionVertex extends ChainedVertex
 
         public ApexValue<?> getApexValue() {
             return apexValue;
+        }
+
+        @Override
+        public <T> T accept(TypedVertexVisitor<T> visitor) {
+            return visitor.visit(this);
         }
     }
 

@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+
+import com.salesforce.graph.visitor.TypedVertexVisitor;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
@@ -298,5 +300,10 @@ public class MethodCallExpressionVertex extends InvocableWithParametersVertex im
                                         NodeType.REFERENCE_EXPRESSION) // Invocation of method
                                 .out(Schema.PARENT)
                                 .hasLabel(NodeType.METHOD_CALL_EXPRESSION));
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

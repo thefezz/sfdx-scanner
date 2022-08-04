@@ -14,6 +14,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+
+import com.salesforce.graph.visitor.TypedVertexVisitor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -117,5 +119,10 @@ public class SoqlExpressionVertex extends InvocableWithParametersVertex implemen
         }
         return TypeableUtil.getTypeHierarchy(
                 ApexStandardLibraryUtil.getListDeclaration(getCanonicalType()));
+    }
+
+    @Override
+    public <T> T accept(TypedVertexVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }
