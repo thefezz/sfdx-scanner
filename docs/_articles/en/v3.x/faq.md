@@ -91,13 +91,13 @@ A: Severity is normalized across all engines using the values in this table.
 A: Code Analyzer supports Apex, Java, Visualforce, and XML in CPD.
 
 #### Q: How do I know which files were not included by CPD execution?
-A: Execute Code Analyzer for CPD with `--verbose` option. Files are filtered first by `targetPatterns` provided in `~/.sfdx-scanner/Config-pilot.json` file. Files that aren't handled by CPD are listed in this message: `Path extensions for the following files will not be processed by CPD`. 
+A: Execute Code Analyzer for CPD with `--verbose` option. Files are filtered first by `targetPatterns` provided in `~/.sfdx-scanner/{{ site.data.versions-v3.configfile }}` file. Files that aren't handled by CPD are listed in this message: `Path extensions for the following files will not be processed by CPD`. 
 
 #### Q: I have a file pattern for a supported languages that isn't picked up by CPD. How do I add the file pattern?
-A: Add your file pattern to the CPD engine’s `targetPatterns` in `~/.sfdx-scanner/Config.json`. If you rerun Code Analyzer with the CPD engine option, and the file is still excluded, create an issue on our GitHub repo.
+A: Add your file pattern to the CPD engine’s `targetPatterns` in `~/.sfdx-scanner/{{ site.data.versions-v3.configfile }}`. If you rerun Code Analyzer with the CPD engine option, and the file is still excluded, create an issue on our GitHub repo.
 
 #### Q: In my violation messages from the CPD engine, I’m seeing multiple groups of the same checksum. The code fragment is also identical. Why aren’t these made up of the same group?
-A: This is a [known issue](https://github.com/pmd/pmd/issues/2438) in CPD, , and it’s on our backlog to address.
+A: This is a [known issue](https://github.com/pmd/pmd/issues/2438) in CPD, and it’s on our backlog to address.
 
 ## Questions about Salesforce Graph Engine
 
@@ -129,9 +129,7 @@ Parameter explanation:
 
 * _Comma-Separated-Fields_: Fields on which the data operation works. If you see _Unknown_ as the only field or as one of the fields, this means SFGE did not have all the information to guess the fields, and trusts you to determine the unlisted fields.
 
-
 *Additional Clause*
-
 
 > _Validation-Type_ validation is missing for _Operation-Name_ operation on _Object-Type_ with field(s) _Comma-Separated-Fields_ - SFGE may not have parsed some objects/fields correctly. Please confirm if the objects/fields involved in these segments have FLS checks: _Unknown-Segments_
 
@@ -139,15 +137,15 @@ Same as the common scenario, but this additionally means SFGE is not confident a
 
 *stripInaccessible warning*
 
-For stripInaccessible checks on READ operation, SFCA does not have the capability to verify that only sanitized data is used after the check. Please ensure that unsanitized data is discarded for _Object-Type_
+For stripInaccessible checks on READ operation, Code Analyzer does not have the capability to verify that only sanitized data is used after the check. Please ensure that unsanitized data is discarded for _Object-Type_
 
-This is thrown for all stripInaccessible checks on READ access type. This is because SFGE has no way to ensure that the sanitized value returned by SecurityDecision is indeed the value used in the code that follows the check. Once you’ve confirmed this, you can add an engine directive to ask SFGE to ignore this in the next run.
+This is thrown for all stripInaccessible checks on READ access type. This is because Graph Engine has no way to ensure that the sanitized value returned by SecurityDecision is indeed the value used in the code that follows the check. Once you’ve confirmed this, you can add an engine directive to ask Graph Engine to ignore this in the next run.
 
 *Internal error*
 
 Internal error. Work in progress. Please ignore.
 
-This indicates that SFGE ran into an error while assessing the source/sink path mentioned in the violation. While we continue to work on fixing these errors, please make sure that the path in question is sanitized anyway.
+This indicates that Graph Engine ran into an error while assessing the source/sink path mentioned in the violation. While we continue to work on fixing these errors, please make sure that the path in question is sanitized anyway.
 
 #### Q: My data operation is already protected though not through a CRUD/FLS check. I'm confident that a CRUD/FLS check is not needed. How do I make the violation go away?
 
@@ -157,8 +155,8 @@ If you determine that the CRUD operation in question is protected by a sanitizer
 
 If you didn’t get any violations, one these is a possibility:
 
-1. SFGE did not identify any entry points
-2. SFGE ran into errors for all the entry points identified
+1. Graph Engine did not identify any entry points
+2. Graph Engine ran into errors for all the entry points identified
 3. Your code is actually secure
 
 Since #1 and #2 exist, you may still want to manually make sure your code is secure.
