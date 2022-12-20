@@ -13,6 +13,8 @@ import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 public class ApexIdValueTest {
     private GraphTraversalSource g;
 
@@ -91,5 +93,28 @@ public class ApexIdValueTest {
 
         DescribeSObjectResult describeSObjectResult = visitor.getResult(2);
         MatcherAssert.assertThat(describeSObjectResult.isIndeterminant(), equalTo(false));
+    }
+
+    @Test
+    public void testForLoopOnId() {
+        String sourceCode = "public class MyClass {\n" +
+            "   public void doSomething(String id1, String id2) {\n" +
+            "       List<Id> myIds = new List<Id>{Id.valueOf(id1), Id.valueOf(id2)};\n" +
+            "       for (Id myId : myIds) {\n" +
+            "           System.debug(myId);\n" +
+            "           System.debug(myId.getSObjectType());\n" +
+            "       }\n" +
+            "   }\n" +
+            "}\n";
+
+        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
+        SystemDebugAccumulator visitor = result.getVisitor();
+
+        ApexIdValue id = visitor.getResult(0);
+        List<ApexValue<?>> items = id.getIterationInfo().get().getIteratedItems();
+        items.forEach(item -> MatcherAssert.assertThat(item instanceof ApexIdValue, equalTo(true)));
+
+        SObjectType sObjectType = visitor.getResult(1);
+        MatcherAssert.assertThat(sObjectType.isIndeterminant(), equalTo(false));
     }
 }

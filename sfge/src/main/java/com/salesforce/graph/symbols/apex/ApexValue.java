@@ -92,6 +92,16 @@ public abstract class ApexValue<T extends ApexValue> implements DeepCloneable<T>
     /** See {@link ValueStatus} */
     private final ValueStatus status;
 
+    /** Tracks if an ApexValue is derived as iterated value of another ApexValue.
+     * For example, myStr (ApexStringValue) derived from myList (ApexListValue) here:
+     * List<String> myList = new List<String>{'hi', 'hello};
+     * for (String myStr: myList) {
+     *     System.debug(myStr);
+     * }
+     *
+     */
+    private final IterationInfo iterationInfo;
+
     protected ApexValue(ApexValueBuilder builder) {
         this.status = builder.getStatus();
         this.declarationVertex = builder.getDeclarationVertex();
@@ -102,6 +112,7 @@ public abstract class ApexValue<T extends ApexValue> implements DeepCloneable<T>
         this.resolvedValues = new HashMap<>();
         this.positiveConstraints = new HashSet<>(builder.getPositiveConstraints());
         this.negativeConstraints = new HashSet<>(builder.getNegativeConstraints());
+        this.iterationInfo = builder.getIterationInfo();
         setValueVertex(builder);
     }
 
@@ -122,6 +133,7 @@ public abstract class ApexValue<T extends ApexValue> implements DeepCloneable<T>
         this.resolvedValues = CloneUtil.cloneHashMap(other.resolvedValues);
         this.positiveConstraints = CloneUtil.cloneHashSet(other.positiveConstraints);
         this.negativeConstraints = CloneUtil.cloneHashSet(other.negativeConstraints);
+        this.iterationInfo = CloneUtil.clone(other.iterationInfo);
     }
 
     public abstract Optional<String> getDefiningType();
@@ -250,6 +262,10 @@ public abstract class ApexValue<T extends ApexValue> implements DeepCloneable<T>
 
     public Optional<ChainedVertex> getValue(ChainedVertex value) {
         return Optional.ofNullable(resolvedValues.get(value));
+    }
+
+    public Optional<IterationInfo> getIterationInfo() {
+        return Optional.ofNullable(this.iterationInfo);
     }
 
     /**

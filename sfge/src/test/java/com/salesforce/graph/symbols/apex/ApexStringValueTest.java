@@ -1,12 +1,12 @@
 package com.salesforce.graph.symbols.apex;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-
 import com.salesforce.TestRunner;
 import com.salesforce.TestUtil;
 import com.salesforce.graph.visitor.SystemDebugAccumulator;
 import com.salesforce.matchers.TestRunnerMatcher;
+
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.hamcrest.MatcherAssert;
@@ -17,6 +17,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.hamcrest.Matchers.*;
 
 public class ApexStringValueTest {
     private GraphTraversalSource g;
@@ -896,6 +898,28 @@ public class ApexStringValueTest {
         SystemDebugAccumulator visitor = result.getVisitor();
         ApexStringValue value = visitor.getSingletonResult();
         MatcherAssert.assertThat(TestUtil.apexValueToString(value), equalTo(expected));
+    }
+
+    @Test
+    public void testForEachMethodCall() {
+        String sourceCode = "public class MyClass {\n" +
+            "   void doSomething() {\n" +
+            "       List<String> ucValues = new List<String>{'HI','HELLO'};\n" +
+            "       for (String val: ucValues) {\n" +
+            "           System.debug(val.toLowerCase());\n" +
+            "       }\n" +
+            "   }\n" +
+            "}\n";
+
+        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
+        SystemDebugAccumulator visitor = result.getVisitor();
+        ApexStringValue value = visitor.getSingletonResult();
+
+        List<String> items = value
+            .getIterationInfo().get().getIteratedItems()
+            .stream().map(item -> TestUtil.apexValueToString(item))
+            .collect(Collectors.toList());
+        MatcherAssert.assertThat(items, containsInAnyOrder("hi","hello"));
     }
 
     // TODO: Tests on determinant data

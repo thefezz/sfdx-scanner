@@ -3,6 +3,7 @@ package com.salesforce.graph.symbols.apex;
 import com.salesforce.apex.ApexEnum;
 import com.salesforce.apex.jorje.ASTConstants;
 import com.salesforce.collections.CollectionUtil;
+import com.salesforce.exception.ProgrammingException;
 import com.salesforce.exception.UnexpectedException;
 import com.salesforce.graph.DeepCloneable;
 import com.salesforce.graph.MetadataInfoProvider;
@@ -13,42 +14,17 @@ import com.salesforce.graph.ops.TypeableUtil;
 import com.salesforce.graph.symbols.AbstractClassInstanceScope;
 import com.salesforce.graph.symbols.DefaultNoOpScope;
 import com.salesforce.graph.symbols.SymbolProvider;
-import com.salesforce.graph.symbols.apex.schema.DescribeFieldResult;
-import com.salesforce.graph.symbols.apex.schema.DescribeSObjectResult;
-import com.salesforce.graph.symbols.apex.schema.FieldSet;
-import com.salesforce.graph.symbols.apex.schema.FieldSetMember;
-import com.salesforce.graph.symbols.apex.schema.SObjectField;
-import com.salesforce.graph.symbols.apex.schema.SObjectType;
+import com.salesforce.graph.symbols.apex.schema.*;
 import com.salesforce.graph.symbols.apex.system.SObjectAccessDecision;
-import com.salesforce.graph.vertex.BinaryExpressionVertex;
-import com.salesforce.graph.vertex.BooleanExpressionVertex;
-import com.salesforce.graph.vertex.ChainedVertex;
-import com.salesforce.graph.vertex.InvocableVertex;
-import com.salesforce.graph.vertex.InvocableWithParametersVertex;
-import com.salesforce.graph.vertex.LiteralExpressionVertex;
-import com.salesforce.graph.vertex.MethodVertex;
-import com.salesforce.graph.vertex.NewKeyValueObjectExpressionVertex;
-import com.salesforce.graph.vertex.NewListInitExpressionVertex;
-import com.salesforce.graph.vertex.NewListLiteralExpressionVertex;
-import com.salesforce.graph.vertex.NewMapInitExpressionVertex;
-import com.salesforce.graph.vertex.NewMapLiteralExpressionVertex;
-import com.salesforce.graph.vertex.NewSetInitExpressionVertex;
-import com.salesforce.graph.vertex.NewSetLiteralExpressionVertex;
-import com.salesforce.graph.vertex.SoqlExpressionVertex;
-import com.salesforce.graph.vertex.SyntheticTypedVertex;
-import com.salesforce.graph.vertex.TernaryExpressionVertex;
-import com.salesforce.graph.vertex.Typeable;
-import com.salesforce.graph.vertex.VariableExpressionVertex;
-import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.TreeMap;
-import java.util.function.Supplier;
-import javax.annotation.Nullable;
+import com.salesforce.graph.vertex.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import javax.annotation.Nullable;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * This class encapsulates all of the logic for creating ApexValues. It provides methods when the
@@ -76,6 +52,8 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
     private InvocableVertex invocable;
     private MethodVertex method;
     private String methodReturnType;
+    private IterationInfo iterationInfo;
+    private ApexValue<?> assignedTo;
 
     /**
      * Used to track previously built values, this avoids accidentally mixing values from different
@@ -104,6 +82,7 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
         this.invocable = other.invocable;
         this.method = other.method;
         this.methodReturnType = other.methodReturnType;
+        this.iterationInfo = CloneUtil.clone(other.iterationInfo);
     }
 
     @Override
@@ -305,8 +284,25 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
         return registerResult(new DescribeSObjectResult(this));
     }
 
-    public ApexForLoopValue buildForLoopValue() {
-        return registerResult(new ApexForLoopValue(this));
+    public ApexValue<?> buildValueFromIteratedInfo() {
+        if (iterationInfo == null) {
+            return null;
+        }
+
+        ApexValue<?> referenceApexValue = null;
+
+        // Try creating copy from the first item in the list
+        List<ApexValue<?>> iteratedItems = iterationInfo.getIteratedItems();
+
+        if (!iteratedItems.isEmpty()) {
+            referenceApexValue = iteratedItems.get(0);
+        } else if (assignedTo != null) {
+            referenceApexValue = assignedTo;
+        }
+
+        // copy necessary content from assignedTo apexValue
+        this.valueVertex = assignedTo.valueVertex;
+        return this.build();
     }
 
     /**
@@ -317,6 +313,16 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
         this.valueVertex = apexListValue.getValueVertex().orElse(null);
         this.declarationVertex = apexListValue.getDeclarationVertex().orElse(null);
         return registerResult(new ApexForLoopValue(apexListValue, this));
+    }
+
+    /**
+     * Build an ApexForLoopValue for the list. Copies over the valueVertex and declarationVertex
+     * from the original set.
+     */
+    public ApexForLoopValue buildForLoopValue(ApexSetValue apexSetValue) {
+        this.valueVertex = apexSetValue.getValueVertex().orElse(null);
+        this.declarationVertex = apexSetValue.getDeclarationVertex().orElse(null);
+        return registerResult(new ApexForLoopValue(apexSetValue, this));
     }
 
     public ApexDecimalValue buildDecimal() {
@@ -518,6 +524,27 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
         return this;
     }
 
+    public ApexValueBuilder iteratedOnValue(@Nullable ApexValue<?> apexValue) {
+        if (iterationInfo != null) {
+            throw new ProgrammingException("Invalid attempt to overwrite value. iteratedItemInfo has already been set to: " + iterationInfo);
+        }
+        iterationInfo = new IterationInfo(apexValue);
+        return this;
+    }
+
+    public ApexValueBuilder iteratedOnVertex(ChainedVertex vertex, ApexValue<?> baseApexValue) {
+        if (iterationInfo != null) {
+            throw new ProgrammingException("Invalid attempt to overwrite value. iteratedItemInfo has already been set to: " + iterationInfo);
+        }
+        if (vertex instanceof VariableExpressionVertex.ForLoop) {
+            iterationInfo = new IterationInfo(vertex, this);
+            assignedTo = baseApexValue;
+        } else {
+            throw new UnexpectedException("Unknown vertex type that's iterated: " + vertex);
+        }
+        return this;
+    }
+
     public @Nullable Typeable getDeclarationVertex() {
         return declarationVertex;
     }
@@ -572,6 +599,10 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
         return this.negativeConstraints;
     }
 
+    public @Nullable IterationInfo getIterationInfo() {
+        return this.iterationInfo;
+    }
+
     /**
      * Uses the ValueVertex to determine the correct type to create. This is used when the caller
      * doesn't know or care which type will be created. The method uses the {@link #valueVertex} but
@@ -580,11 +611,24 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
      */
     private Optional<ApexValue<?>> buildCorrectType() {
         checkValidity();
+
+        if (iterationInfo != null && status != ValueStatus.INITIALIZED) {
+            status = (!iterationInfo.isItemListIndeterminant())? ValueStatus.INITIALIZED: status;
+        }
+
         ApexValue<?> result = buildCorrectTypeFromValue();
+
+//        if (iterationInfo != null) {
+//            final Optional<Typeable> type = iterationInfo.getType();
+//            if (type.isPresent()) {
+//                result = buildCorrectTypeFromType(type.get().getCanonicalType());
+//            }
+//        }
 
         if (result == null) {
             result = buildCorrectTypeFromDeclaration();
         }
+
 
         if (result == null) {
             // deepClone since buildCorrectTypeFromMethodReturnType may not succeed and this builder
@@ -614,8 +658,15 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
                     Pair.of(SObjectAccessDecision.TYPE, this::buildSObjectAccessDecision),
                     Pair.of(SObjectType.TYPE, this::buildSObjectType));
 
-    /** Uses the declaration vertex to build the correct type. */
+    /** Uses the declaration vertex and/or iterationInfo to build the correct type. */
     private @Nullable ApexValue<?> buildCorrectTypeFromDeclaration() {
+        if (declarationVertex == null) {
+            // See if we can detect type from iteration information
+            if (iterationInfo != null) {
+                declarationVertex = iterationInfo.getType().orElse(null);
+            }
+        }
+
         if (declarationVertex == null) {
             return null;
         }
@@ -721,8 +772,6 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
                     symbolProvider
                             .getApexValue((VariableExpressionVertex) valueVertex)
                             .orElse(null);
-        } else if (valueVertex instanceof VariableExpressionVertex.ForLoop) {
-            return buildForLoopValue();
         } else if (valueVertex instanceof VariableExpressionVertex) {
             // Any other variable types are converted to a generic ApexSingleValue
             result = buildSingleValue();
@@ -816,8 +865,8 @@ public class ApexValueBuilder implements DeepCloneable<ApexValueBuilder> {
     }
 
     private void checkValidity() {
-        if (declarationVertex == null && valueVertex == null) {
-            throw new UnexpectedException("Declaration or Value must be provided");
+        if (declarationVertex == null && valueVertex == null && iterationInfo == null) {
+            throw new UnexpectedException("Declaration or Value or IterationInfo must be provided");
         }
 
         if (status == null) {

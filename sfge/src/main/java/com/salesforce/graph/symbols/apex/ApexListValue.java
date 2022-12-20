@@ -9,6 +9,7 @@ import com.salesforce.exception.UnimplementedMethodException;
 import com.salesforce.graph.DeepCloneable;
 import com.salesforce.graph.ops.ApexValueUtil;
 import com.salesforce.graph.ops.CloneUtil;
+import com.salesforce.graph.ops.TypeableUtil;
 import com.salesforce.graph.symbols.ScopeUtil;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.vertex.ChainedVertex;
@@ -36,7 +37,7 @@ import org.apache.logging.log4j.Logger;
  * https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_methods_system_list.htm
  */
 public final class ApexListValue extends AbstractSanitizableValue<ApexListValue>
-        implements DeepCloneable<ApexListValue> {
+        implements DeepCloneable<ApexListValue>, ApexIterableCollectionValue {
     private static final Logger LOGGER = LogManager.getLogger(ApexListValue.class);
 
     public static final String METHOD_ADD = "add";
@@ -100,6 +101,7 @@ public final class ApexListValue extends AbstractSanitizableValue<ApexListValue>
         return visitor.visit(this);
     }
 
+    @Override
     public List<ApexValue<?>> getValues() {
         return Collections.unmodifiableList(values);
     }
@@ -361,13 +363,9 @@ public final class ApexListValue extends AbstractSanitizableValue<ApexListValue>
         }
 
         final String canonicalType = typeable.getCanonicalType();
-        final Matcher matcher = TYPE_PATTERN.matcher(canonicalType);
-        if (matcher.find()) {
-            if (matcher.groupCount() != 1) {
-                throw new UnexpectedException(
-                        "Expected to find only one Type in list declaration: " + typeable);
-            }
-            return Optional.of(SyntheticTypedVertex.get(matcher.group(1)));
+        Optional<String> optSubType = TypeableUtil.getListSubType(canonicalType);
+        if (optSubType.isPresent()) {
+            return Optional.of(SyntheticTypedVertex.get(optSubType.get()));
         }
 
         // If we don't find a match, we are still okay.
@@ -386,5 +384,10 @@ public final class ApexListValue extends AbstractSanitizableValue<ApexListValue>
                         .markSanitized(sanitizerMechanism, sanitizerDecision);
             }
         }
+    }
+
+    @Override
+    public Optional<Typeable> getSubType() {
+        return Optional.ofNullable(this.listType);
     }
 }

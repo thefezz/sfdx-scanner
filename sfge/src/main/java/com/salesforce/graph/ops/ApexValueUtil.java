@@ -7,11 +7,7 @@ import com.salesforce.exception.TodoException;
 import com.salesforce.exception.UnexpectedException;
 import com.salesforce.graph.symbols.ScopeUtil;
 import com.salesforce.graph.symbols.SymbolProvider;
-import com.salesforce.graph.symbols.apex.ApexForLoopValue;
-import com.salesforce.graph.symbols.apex.ApexStringValue;
-import com.salesforce.graph.symbols.apex.ApexValue;
-import com.salesforce.graph.symbols.apex.ApexValueBuilder;
-import com.salesforce.graph.symbols.apex.ValueStatus;
+import com.salesforce.graph.symbols.apex.*;
 import com.salesforce.graph.vertex.BinaryExpressionVertex;
 import com.salesforce.graph.vertex.ChainedVertex;
 import com.salesforce.graph.vertex.InvocableVertex;
@@ -347,6 +343,43 @@ public final class ApexValueUtil {
             }
         }
         return apexStringOptional;
+    }
+
+    /**
+     * Creates an iterated value from a collection ApexValue.
+     * Keeps base type and links it to the collection it was created from.
+     */
+    public static ApexValue<?> createIteratedItemValue(ApexValue<?> inputApexValue, SymbolProvider symbols) {
+//        final Typeable listType;
+//        final ValueStatus valueStatus = (inputApexValue == null) ? ValueStatus.INDETERMINANT : inputApexValue.getStatus();
+//        if (inputApexValue instanceof ApexListValue) {
+//            ApexListValue apexListValue = (ApexListValue) inputApexValue;
+//            listType = apexListValue.getListType().orElse(null);
+//        } else if (inputApexValue instanceof ApexSoqlValue) {
+//            ApexSoqlValue apexSoqlValue = (ApexSoqlValue) inputApexValue;
+//            String objectName = apexSoqlValue.getDefiningType().orElse(null);
+//            if (objectName != null) {
+//                listType = SyntheticTypedVertex.get(objectName);
+//            } else {
+//                listType = null;
+//            }
+//        } else if (inputApexValue == null) {
+//            listType = null;
+//        } else {
+//            throw new UnexpectedException(inputApexValue);
+//        }
+
+
+        final ApexValueBuilder builder = ApexValueBuilder.get(symbols);
+
+        if (inputApexValue != null) {
+            return builder.iteratedOnValue(inputApexValue).build();
+        }
+
+        return builder
+            .withStatus(ValueStatus.INDETERMINANT)
+            .buildUnknownType();
+
     }
 
     private ApexValueUtil() {}

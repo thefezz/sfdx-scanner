@@ -1212,9 +1212,9 @@ public class ApexValueResolutionTest {
 
         SObjectType sObjectType = (SObjectType) results.get(6).get();
         MatcherAssert.assertThat(sObjectType.isDeterminant(), equalTo(true));
-        ApexForLoopValue apexForLoopValue = (ApexForLoopValue) sObjectType.getType().get();
+        ApexStringValue apexStringValue = (ApexStringValue) sObjectType.getType().get();
 
-        List<ApexValue<?>> items = apexForLoopValue.getForLoopValues();
+        List<ApexValue<?>> items = apexStringValue.getIterationInfo().get().getIteratedItems();
         MatcherAssert.assertThat(items, hasSize(equalTo(3)));
         String[] expectedValues = new String[] {"Account", "Contact", "MyObject__c"};
         for (int i = 0; i < expectedValues.length; i++) {
@@ -1258,9 +1258,9 @@ public class ApexValueResolutionTest {
 
         SObjectType sObjectType = (SObjectType) results.get(9).get();
         MatcherAssert.assertThat(sObjectType.isDeterminant(), equalTo(true));
-        ApexForLoopValue apexForLoopValue = (ApexForLoopValue) sObjectType.getType().get();
+        ApexStringValue apexStringValue = (ApexStringValue) sObjectType.getType().get();
 
-        List<ApexValue<?>> items = apexForLoopValue.getForLoopValues();
+        List<ApexValue<?>> items = apexStringValue.getIterationInfo().get().getIteratedItems();
         MatcherAssert.assertThat(items, hasSize(equalTo(3)));
         String[] expectedValues = new String[] {"Account", "Contact", "MyObject__c"};
         for (int i = 0; i < expectedValues.length; i++) {
@@ -1301,9 +1301,9 @@ public class ApexValueResolutionTest {
 
         SObjectType sObjectType = (SObjectType) results.get(6).get();
         MatcherAssert.assertThat(sObjectType.isDeterminant(), equalTo(true));
-        ApexForLoopValue apexForLoopValue = (ApexForLoopValue) sObjectType.getType().get();
+        ApexStringValue apexStringValue = (ApexStringValue) sObjectType.getType().get();
 
-        List<ApexValue<?>> items = apexForLoopValue.getForLoopValues();
+        List<ApexValue<?>> items = apexStringValue.getIterationInfo().get().getIteratedItems();
         MatcherAssert.assertThat(items, hasSize(equalTo(3)));
         for (int i = 0; i < 3; i++) {
             MatcherAssert.assertThat(items.get(i), instanceOf(ApexStringValue.class));
@@ -1347,10 +1347,10 @@ public class ApexValueResolutionTest {
                 TestUtil.apexValueToString(
                         describeFieldResult.getDescribeSObjectResult().get().getSObjectType()),
                 equalTo("Account"));
-        ApexForLoopValue apexForLoopValue =
-                (ApexForLoopValue) describeFieldResult.getFieldName().get();
+        ApexStringValue apexForLoopValue =
+                (ApexStringValue) describeFieldResult.getFieldName().get();
 
-        List<ApexValue<?>> items = apexForLoopValue.getForLoopValues();
+        List<ApexValue<?>> items = apexForLoopValue.getIterationInfo().get().getIteratedItems();
         MatcherAssert.assertThat(items, hasSize(equalTo(3)));
         String[] expectedValues = new String[] {"Name", "Phone", "Foo__c"};
         for (int i = 0; i < expectedValues.length; i++) {
@@ -1398,10 +1398,10 @@ public class ApexValueResolutionTest {
                 TestUtil.apexValueToString(
                         describeFieldResult.getDescribeSObjectResult().get().getSObjectType()),
                 equalTo("Account"));
-        ApexForLoopValue apexForLoopValue =
-                (ApexForLoopValue) describeFieldResult.getFieldName().get();
+        ApexStringValue apexStringValue =
+                (ApexStringValue) describeFieldResult.getFieldName().get();
 
-        List<ApexValue<?>> items = apexForLoopValue.getForLoopValues();
+        List<ApexValue<?>> items = apexStringValue.getIterationInfo().get().getIteratedItems();
         MatcherAssert.assertThat(items, hasSize(equalTo(3)));
         String[] expectedValues = new String[] {"Name", "Phone", "Foo__c"};
         for (int i = 0; i < expectedValues.length; i++) {
@@ -1446,10 +1446,10 @@ public class ApexValueResolutionTest {
                 TestUtil.apexValueToString(
                         describeFieldResult.getDescribeSObjectResult().get().getSObjectType()),
                 equalTo("Account"));
-        ApexForLoopValue apexForLoopValue =
-                (ApexForLoopValue) describeFieldResult.getFieldName().get();
+        ApexStringValue apexStringValue =
+                (ApexStringValue) describeFieldResult.getFieldName().get();
 
-        List<ApexValue<?>> items = apexForLoopValue.getForLoopValues();
+        List<ApexValue<?>> items = apexStringValue.getIterationInfo().get().getIteratedItems();
         MatcherAssert.assertThat(items, hasSize(equalTo(3)));
         for (int i = 0; i < 3; i++) {
             MatcherAssert.assertThat(items.get(i), instanceOf(ApexStringValue.class));
@@ -1495,14 +1495,14 @@ public class ApexValueResolutionTest {
         MatcherAssert.assertThat(describeFieldResult.isDeterminant(), equalTo(true));
 
         List<ApexValue<?>> items;
-        ApexForLoopValue apexForLoopValue;
+        ApexStringValue apexStringValue;
 
         SObjectType sObjectType =
                 describeFieldResult.getDescribeSObjectResult().get().getSObjectType().get();
 
         // Verify that the associated types can have multiple values
-        apexForLoopValue = (ApexForLoopValue) sObjectType.getType().get();
-        items = apexForLoopValue.getForLoopValues();
+        apexStringValue = (ApexStringValue) sObjectType.getType().get();
+        items = apexStringValue.getIterationInfo().get().getIteratedItems();
         String[] expectedObjectValue = new String[] {"Account", "Contact", "MyObject__c"};
         for (int i = 0; i < expectedObjectValue.length; i++) {
             MatcherAssert.assertThat(
@@ -1510,8 +1510,8 @@ public class ApexValueResolutionTest {
         }
 
         // Verify that the associated fields can have multiple values
-        apexForLoopValue = (ApexForLoopValue) describeFieldResult.getFieldName().get();
-        items = apexForLoopValue.getForLoopValues();
+        apexStringValue = (ApexStringValue) describeFieldResult.getFieldName().get();
+        items = apexStringValue.getIterationInfo().get().getIteratedItems();
         MatcherAssert.assertThat(items, hasSize(equalTo(3)));
         String[] expectedValues = new String[] {"Name", "Phone", "Foo__c"};
         for (int i = 0; i < expectedValues.length; i++) {

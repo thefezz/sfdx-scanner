@@ -745,12 +745,13 @@ public abstract class PathScopeVisitor extends BaseScopeVisitor<PathScopeVisitor
 
         ApexValue<?> loadedValue = null;
 
+        // TODO: once tests pass, refactor structure to be more meaningful in the current context
         if (ApexValueUtil.isDeterminant(apexValue)) {
             if (apexValue instanceof ApexListValue) {
                 ApexListValue apexListValue = (ApexListValue) apexValue;
                 if (isSimpleIncrementingTypeForLoop(vertex)) {
                     // This is an array load within a for loop. Convert to an ApexForLoopValue
-                    loadedValue = ApexValueBuilder.get(this).buildForLoopValue(apexListValue);
+                    loadedValue = ApexValueUtil.createIteratedItemValue(apexListValue, this);
                 } else if (index != null) {
                     Optional<ForLoopStatementVertex> optForLoopStatement =
                             vertex.getFirstParentOfType(ASTConstants.NodeType.FOR_LOOP_STATEMENT);
@@ -771,23 +772,19 @@ public abstract class PathScopeVisitor extends BaseScopeVisitor<PathScopeVisitor
                                             + ", index="
                                             + index);
                         }
-                        loadedValue = getIndeterminantArrayLoadValue(apexValue);
+                        loadedValue = ApexValueUtil.createIteratedItemValue(apexListValue, this);
                     }
                 }
             } else if (apexValue instanceof ApexSoqlValue) {
                 // Soql values are always indeterminant since we don't know what was loaded
-                loadedValue = getIndeterminantArrayLoadValue(apexValue);
-            } else if (apexValue instanceof ApexForLoopValue) {
-                if (LOGGER.isWarnEnabled()) {
-                    LOGGER.warn("TODO: vertex=" + vertex + ", apexValue=" + apexValue);
-                }
+                loadedValue = ApexValueUtil.createIteratedItemValue(apexValue, this);
             } else {
                 throw new UnexpectedException(vertex);
             }
         }
 
         if (loadedValue == null) {
-            loadedValue = getIndeterminantArrayLoadValue(apexValue);
+            loadedValue = ApexValueUtil.createIteratedItemValue(apexValue, this);
         }
 
         if (key != null) {
@@ -852,35 +849,39 @@ public abstract class PathScopeVisitor extends BaseScopeVisitor<PathScopeVisitor
     }
 
     /** Generates a single indeterminant value based on the type contained in {@code apexValue} */
-    private ApexValue<?> getIndeterminantArrayLoadValue(@Nullable ApexValue<?> apexValue) {
-        final Typeable listType;
-        if (apexValue instanceof ApexListValue) {
-            ApexListValue apexListValue = (ApexListValue) apexValue;
-            listType = apexListValue.getListType().orElse(null);
-        } else if (apexValue instanceof ApexForLoopValue) {
-            ApexForLoopValue apexForLoopValue = (ApexForLoopValue) apexValue;
-            listType = apexForLoopValue.getTypeVertex().orElse(null);
-        } else if (apexValue instanceof ApexSoqlValue) {
-            ApexSoqlValue apexSoqlValue = (ApexSoqlValue) apexValue;
-            String objectName = apexSoqlValue.getDefiningType().orElse(null);
-            if (objectName != null) {
-                listType = SyntheticTypedVertex.get(objectName);
-            } else {
-                listType = null;
-            }
-        } else if (apexValue == null) {
-            listType = null;
-        } else {
-            throw new UnexpectedException(apexValue);
-        }
-
-        ApexValueBuilder builder = ApexValueBuilder.get(this).withStatus(ValueStatus.INDETERMINANT);
-        if (listType != null) {
-            return builder.declarationVertex(listType).build();
-        } else {
-            return builder.buildUnknownType();
-        }
-    }
+//    private ApexValue<?> getIndeterminantArrayLoadValue(@Nullable ApexValue<?> apexValue) {
+//        final Typeable listType;
+//        final ValueStatus valueStatus = (apexValue == null) ? ValueStatus.INDETERMINANT : apexValue.getStatus();
+//        if (apexValue instanceof ApexListValue) {
+//            ApexListValue apexListValue = (ApexListValue) apexValue;
+//            listType = apexListValue.getListType().orElse(null);
+//        } else if (apexValue instanceof ApexForLoopValue) { // FIXME: remove this!
+//            ApexForLoopValue apexForLoopValue = (ApexForLoopValue) apexValue;
+//            listType = apexForLoopValue.getTypeVertex().orElse(null);
+//        } else if (apexValue instanceof ApexSoqlValue) {
+//            ApexSoqlValue apexSoqlValue = (ApexSoqlValue) apexValue;
+//            String objectName = apexSoqlValue.getDefiningType().orElse(null);
+//            if (objectName != null) {
+//                listType = SyntheticTypedVertex.get(objectName);
+//            } else {
+//                listType = null;
+//            }
+//        } else if (apexValue == null) {
+//            listType = null;
+//        } else {
+//            throw new UnexpectedException(apexValue);
+//        }
+//
+//
+//        final ApexValueBuilder builder = ApexValueBuilder.get(this)
+//            .withStatus(valueStatus)
+//            .iteratedOnValue(apexValue);
+//        if (listType != null) {
+//            return builder.declarationVertex(listType).build();
+//        } else {
+//            return builder.buildUnknownType();
+//        }
+//    }
 
     @Override
     public void afterVisit(AssignmentExpressionVertex vertex) {
@@ -1647,11 +1648,12 @@ public abstract class PathScopeVisitor extends BaseScopeVisitor<PathScopeVisitor
         trackVisited(vertex);
         String key = vertex.getName();
         ApexValue<?> apexValue = getApexValue(key).get();
-        // TODO: somehow clone ApexStringValue and add IterationItemInfo
+
+        // Create a new value that indicates that it was derived from iterating the ForLoop vertex
         ApexValue<?> newValue =
                 ApexValueBuilder.get(this)
                         .declarationVertex(apexValue.getTypeVertex().get())
-                        .valueVertex(vertex)
+                        .iteratedOnVertex(vertex, apexValue)
                         .build();
         apexValueStack.peek().put(key, newValue);
         return true;

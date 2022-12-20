@@ -7,12 +7,8 @@ import com.salesforce.graph.ops.ObjectPropertiesUtil;
 import com.salesforce.graph.symbols.DeepCloneContextProvider;
 import com.salesforce.graph.symbols.ScopeUtil;
 import com.salesforce.graph.symbols.SymbolProvider;
-import com.salesforce.graph.vertex.ChainedVertex;
-import com.salesforce.graph.vertex.InvocableVertex;
-import com.salesforce.graph.vertex.MethodCallExpressionVertex;
-import com.salesforce.graph.vertex.NewListInitExpressionVertex;
-import com.salesforce.graph.vertex.NewListLiteralExpressionVertex;
-import com.salesforce.graph.vertex.VariableExpressionVertex;
+import com.salesforce.graph.vertex.*;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
+@Deprecated /** TODO: Replace ApexForLoopValue with the capability of each value type to know if it's a looped item**/
 public final class ApexForLoopValue extends ApexPropertiesValue<ApexForLoopValue>
         implements DeepCloneableApexValue<ApexForLoopValue> {
     private final List<ApexValue<?>> items;
@@ -31,12 +28,14 @@ public final class ApexForLoopValue extends ApexPropertiesValue<ApexForLoopValue
         if (valueVertex != null
                 && !(valueVertex instanceof VariableExpressionVertex.ForLoop)
                 && !(valueVertex instanceof NewListInitExpressionVertex)
-                && !(valueVertex instanceof NewListLiteralExpressionVertex)) {
+                && !(valueVertex instanceof NewListLiteralExpressionVertex)
+            && !(valueVertex instanceof NewSetInitExpressionVertex)
+            && !(valueVertex instanceof NewSetLiteralExpressionVertex)) {
             throw new UnexpectedException(valueVertex);
         }
     }
 
-    ApexForLoopValue(ApexListValue value, ApexValueBuilder builder) {
+    ApexForLoopValue(ApexIterableCollectionValue value, ApexValueBuilder builder) {
         super(builder);
         this.items = new ArrayList<>();
         setValue(value);
@@ -44,6 +43,18 @@ public final class ApexForLoopValue extends ApexPropertiesValue<ApexForLoopValue
                 && !(valueVertex instanceof VariableExpressionVertex.ForLoop)
                 && !(valueVertex instanceof NewListInitExpressionVertex)
                 && !(valueVertex instanceof NewListLiteralExpressionVertex)) {
+            throw new UnexpectedException(valueVertex);
+        }
+    }
+
+    ApexForLoopValue(ApexSetValue value, ApexValueBuilder builder) {
+        super(builder);
+        this.items = new ArrayList<>();
+        setValue(value);
+        if (valueVertex != null
+            && !(valueVertex instanceof VariableExpressionVertex.ForLoop)
+            && !(valueVertex instanceof NewSetInitExpressionVertex)
+            && !(valueVertex instanceof NewSetLiteralExpressionVertex)) {
             throw new UnexpectedException(valueVertex);
         }
     }
@@ -83,30 +94,35 @@ public final class ApexForLoopValue extends ApexPropertiesValue<ApexForLoopValue
     private void setValue(@Nullable ChainedVertex valueVertex, SymbolProvider symbolProvider) {
         this.items.clear();
 
-        ApexListValue apexListValue = null;
+        ApexIterableCollectionValue apexCollectionValue = null;
         if (valueVertex instanceof VariableExpressionVertex.ForLoop) {
             ChainedVertex forLoopValues =
                     ((VariableExpressionVertex.ForLoop) valueVertex).getForLoopValues();
             ApexValue<?> apexValue =
                     ScopeUtil.resolveToApexValue(symbolProvider, forLoopValues).orElse(null);
-            if (apexValue instanceof ApexListValue) {
-                apexListValue = (ApexListValue) apexValue;
+            if (apexValue instanceof ApexIterableCollectionValue) {
+                apexCollectionValue = (ApexIterableCollectionValue) apexValue;
             }
         } else if (valueVertex instanceof NewListLiteralExpressionVertex) {
-            apexListValue =
+            apexCollectionValue =
                     ApexValueBuilder.get(symbolProvider).valueVertex(valueVertex).buildList();
+        } else if (valueVertex instanceof NewSetLiteralExpressionVertex) {
+            apexCollectionValue =
+                ApexValueBuilder.get(symbolProvider).valueVertex(valueVertex).buildSet();
         }
 
-        if (apexListValue != null) {
-            setValue(apexListValue);
+        if (apexCollectionValue != null) {
+            setValue(apexCollectionValue);
         }
     }
 
-    private void setValue(ApexListValue apexListValue) {
+    private void setValue(ApexIterableCollectionValue apexCollectionValue) {
         // Pass on sanitization information
-        AbstractSanitizableValue.copySanitization(apexListValue, this);
-        // Add items in the list
-        for (ApexValue<?> item : apexListValue.getValues()) {
+        if (apexCollectionValue instanceof AbstractSanitizableValue) {
+            AbstractSanitizableValue.copySanitization((AbstractSanitizableValue) apexCollectionValue, this);
+        }
+        // Add items in the collection
+        for (ApexValue<?> item : apexCollectionValue.getValues()) {
             items.add(item);
         }
     }

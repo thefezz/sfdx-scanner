@@ -596,11 +596,10 @@ public class MethodPathBuilderVisitor {
         if (NodeType.TERMINAL_VERTEX_LABELS.contains(from.label())) {
             // Ask user to fix unreachable code
             throw new UserActionException(
-                    String.format(
                             UserFacingMessages.UNREACHABLE_CODE,
                             GremlinUtil.getFileName(g, to),
                             to.value(Schema.DEFINING_TYPE),
-                            to.value(Schema.BEGIN_LINE)));
+                            to.value(Schema.BEGIN_LINE));
         }
 
         if (LOGGER.isTraceEnabled()) {

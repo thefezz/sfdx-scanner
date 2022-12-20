@@ -1,9 +1,6 @@
 package com.salesforce.graph.symbols.apex;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsNot.not;
 
 import com.salesforce.TestRunner;
@@ -11,15 +8,18 @@ import com.salesforce.TestUtil;
 import com.salesforce.graph.ops.expander.NullValueAccessedException;
 import com.salesforce.graph.symbols.SymbolProvider;
 import com.salesforce.graph.symbols.apex.schema.DescribeFieldResult;
+import com.salesforce.graph.symbols.apex.schema.SObjectField;
 import com.salesforce.graph.vertex.MethodCallExpressionVertex;
 import com.salesforce.graph.visitor.SystemDebugAccumulator;
 import com.salesforce.matchers.ApexValueMatchers;
 import com.salesforce.matchers.TestRunnerMatcher;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,9 +64,9 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
         SystemDebugAccumulator visitor = result.getVisitor();
 
-        ApexForLoopValue value = visitor.getSingletonResult();
+        ApexStringValue value = visitor.getSingletonResult();
         List<String> values =
-                value.getForLoopValues().stream()
+                value.getIterationInfo().get().getIteratedItems().stream()
                         .map(a -> TestUtil.apexValueToString(a))
                         .collect(Collectors.toList());
         MatcherAssert.assertThat(values, contains("Name", "Phone"));
@@ -88,9 +88,9 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
         SystemDebugAccumulator visitor = result.getVisitor();
 
-        ApexForLoopValue value = visitor.getSingletonResult();
+        ApexStringValue value = visitor.getSingletonResult();
         List<String> values =
-                value.getForLoopValues().stream()
+                value.getIterationInfo().get().getIteratedItems().stream()
                         .map(a -> TestUtil.apexValueToString(a))
                         .collect(Collectors.toList());
         MatcherAssert.assertThat(values, contains("Name", "Phone"));
@@ -113,9 +113,9 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
         SystemDebugAccumulator visitor = result.getVisitor();
 
-        ApexForLoopValue value = visitor.getSingletonResult();
+        ApexStringValue value = visitor.getSingletonResult();
         List<String> values =
-                value.getForLoopValues().stream()
+                value.getIterationInfo().get().getIteratedItems().stream()
                         .map(a -> TestUtil.apexValueToString(a))
                         .collect(Collectors.toList());
         MatcherAssert.assertThat(values, contains("Name", "Phone"));
@@ -138,9 +138,9 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
         SystemDebugAccumulator visitor = result.getVisitor();
 
-        ApexForLoopValue value = visitor.getSingletonResult();
+        ApexStringValue value = visitor.getSingletonResult();
         List<String> values =
-                value.getForLoopValues().stream()
+                value.getIterationInfo().get().getIteratedItems().stream()
                         .map(a -> TestUtil.apexValueToString(a))
                         .collect(Collectors.toList());
         MatcherAssert.assertThat(values, contains("Name", "Phone"));
@@ -282,12 +282,38 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
         SystemDebugAccumulator visitor = result.getVisitor();
 
-        ApexForLoopValue value = visitor.getSingletonResult();
+        ApexStringValue value = visitor.getSingletonResult();
+        IterationInfo iterationInfo = value.getIterationInfo().get();
+
         List<String> values =
-                value.getForLoopValues().stream()
+                iterationInfo.getIteratedItems().stream()
                         .map(a -> TestUtil.apexValueToString(a))
                         .collect(Collectors.toList());
         MatcherAssert.assertThat(values, contains("Name", "Phone"));
+    }
+
+    @Test
+    public void testForEachWithSet() {
+        String sourceCode =
+            "public class MyClass {\n"
+                + "   public void doSomething() {\n"
+                + "       Set<String> fieldsToCheck = new Set<String>{'Name', 'Phone'};\n"
+                + "       for (String fieldToCheck : fieldsToCheck) {\n"
+                + "           System.debug(fieldToCheck);\n"
+                + "       }\n"
+                + "   }\n"
+                + "}\n";
+
+        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
+        SystemDebugAccumulator visitor = result.getVisitor();
+
+        ApexStringValue value = visitor.getSingletonResult();
+        List<String> values =
+            value.getIterationInfo().get().getIteratedItems().stream()
+                .map(a -> TestUtil.apexValueToString(a))
+                .collect(Collectors.toList());
+        MatcherAssert.assertThat(values.isEmpty(), equalTo(false));
+        MatcherAssert.assertThat(values, containsInAnyOrder("Name", "Phone"));
     }
 
     @Test
@@ -304,9 +330,9 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
         SystemDebugAccumulator visitor = result.getVisitor();
 
-        ApexForLoopValue value = visitor.getSingletonResult();
+        ApexStringValue value = visitor.getSingletonResult();
         List<String> values =
-                value.getForLoopValues().stream()
+                value.getIterationInfo().get().getIteratedItems().stream()
                         .map(a -> TestUtil.apexValueToString(a))
                         .collect(Collectors.toList());
         MatcherAssert.assertThat(values, contains("Name", "Phone"));
@@ -331,9 +357,9 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
         SystemDebugAccumulator visitor = result.getVisitor();
 
-        ApexForLoopValue value = visitor.getSingletonResult();
+        ApexStringValue value = visitor.getSingletonResult();
         List<String> values =
-                value.getForLoopValues().stream()
+                value.getIterationInfo().get().getIteratedItems().stream()
                         .map(a -> TestUtil.apexValueToString(a))
                         .collect(Collectors.toList());
         MatcherAssert.assertThat(values, contains("Name", "Phone"));
@@ -376,9 +402,9 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
         SystemDebugAccumulator visitor = result.getVisitor();
 
-        ApexForLoopValue value = visitor.getSingletonResult();
+        ApexStringValue value = visitor.getSingletonResult();
         List<String> values =
-                value.getForLoopValues().stream()
+                value.getIterationInfo().get().getIteratedItems().stream()
                         .map(a -> TestUtil.apexValueToString(a))
                         .collect(Collectors.toList());
         MatcherAssert.assertThat(values, contains("Name", "Phone"));
@@ -459,11 +485,39 @@ public class ApexForLoopValueTest {
                 "public class MyClass {\n"
                         + "	void doSomething() {\n"
                         + "		List<Schema.SObjectField> fields = new List<Schema.SObjectFields>{Schema.Account.fields.Name,Schema.Account.fields.Phone};\n"
-                        + "		for (Schema.SObjectField field: fields) {\n"
+                        + "		for (Schema.SObjectField field: fields) {\n" +
+                    "           System.debug(field);\n"
                         + "			System.debug(field.getDescribe());\n"
                         + "		}\n"
                         + "	}\n"
                         + "}\n";
+
+        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.get(g, sourceCode).walkPath();
+        SystemDebugAccumulator visitor = result.getVisitor();
+        List<Optional<ApexValue<?>>> results = visitor.getAllResults();
+
+        SObjectField fieldValue = (SObjectField) results.get(0).get();
+
+//        ApexForLoopValue resultValue = visitor.getSingletonResult();
+//        List<String> fieldNames = resultValue.getForLoopValues().stream().map(a -> {
+//            Optional<ApexValue<?>> fieldNameOpt = ((DescribeFieldResult) a).getFieldName();
+//            return TestUtil.apexValueToString(fieldNameOpt);
+//        }).collect(Collectors.toList());
+
+//        MatcherAssert.assertThat(fieldNames, containsInAnyOrder("Name", "Phone"));
+    }
+
+    @Test
+    public void testStdMethodCallOnForLoopVariableWithSet() {
+        String sourceCode =
+            "public class MyClass {\n"
+                + "	void doSomething() {\n"
+                + "		Set<Schema.SObjectField> fields = new Set<Schema.SObjectFields>{Schema.Account.fields.Name,Schema.Account.fields.Phone};\n"
+                + "		for (Schema.SObjectField field: fields) {\n"
+                + "			System.debug(field.getDescribe());\n"
+                + "		}\n"
+                + "	}\n"
+                + "}\n";
 
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.get(g, sourceCode).walkPath();
         SystemDebugAccumulator visitor = result.getVisitor();
@@ -472,14 +526,14 @@ public class ApexForLoopValueTest {
     }
 
     @Test
-    public void testMethodCallOnForLoopVariable() {
+    public void testMethodCallOnForLoopVariableWithList() {
         String[] sourceCode = {
             "public class MyClass {\n"
                     + "	void doSomething() {\n"
                     + "		List<Bean> beans = new List<Bean>{new Bean('hi'),new Bean('hello')};\n"
-                    + "		for (Bean bean: beans) {\n"
-                    + "			String myValue = bean.getValue();\n"
-                    + "			System.debug(myValue);\n"
+                    + "		for (Bean bean: beans) {\n" +
+                "           System.debug(bean);\n"
+                    + "			System.debug(bean.getValue());\n"
                     + "		}\n"
                     + "	}\n"
                     + "}\n",
@@ -497,7 +551,83 @@ public class ApexForLoopValueTest {
         TestRunner.Result<SystemDebugAccumulator> result = TestRunner.get(g, sourceCode).walkPath();
         SystemDebugAccumulator visitor = result.getVisitor();
 
+        List<Optional<ApexValue<?>>> allResults = visitor.getAllResults();
+
+        ApexClassInstanceValue beanValue = (ApexClassInstanceValue) allResults.get(0).get();
+
+        ApexStringValue value = (ApexStringValue) allResults.get(1).get();
+        MatcherAssert.assertThat(value.getValue().get(), equals("hi"));
+    }
+
+    @Test
+    public void testMethodCallOnForLoopVariableWithSet() {
+        String[] sourceCode = {
+            "public class MyClass {\n"
+                + "	void doSomething() {\n"
+                + "		Set<Bean> beans = new Set<Bean>{new Bean('hi'),new Bean('hello')};\n"
+                + "		for (Bean bean: beans) {\n"
+                + "			String myValue = bean.getValue();\n"
+                + "			System.debug(myValue);\n"
+                + "		}\n"
+                + "	}\n"
+                + "}\n",
+            "public class Bean {\n"
+                + "private String value;\n"
+                + "public Bean(String val1) {\n"
+                + "	this.value = val1;\n"
+                + "}\n"
+                + "public String getValue() {\n"
+                + "	return this.value;\n"
+                + "}\n"
+                + "}\n"
+        };
+
+        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.get(g, sourceCode).walkPath();
+        SystemDebugAccumulator visitor = result.getVisitor();
+
         ApexStringValue value = visitor.getSingletonResult();
         MatcherAssert.assertThat(value.getValue().get(), equals("hi"));
+    }
+
+    @Test
+    public void testLoadFromSoql() {
+        String sourceCode = "public class MyClass {\n"
+            + "	void doSomething() {\n" +
+            "      /* sfge-disable ApexCrudFlsViolationRule */\n"
+            + "		List<Account> accounts = [SELECT Id, Name from Account];\n"
+            + "		for (Integer i = 0; i < accounts.size(); i++) {\n"
+            + "			System.debug(accounts[i]);\n"
+            + "		}\n"
+            + "	}\n"
+            + "}\n";
+
+        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.get(g, sourceCode).walkPath();
+        SystemDebugAccumulator visitor = result.getVisitor();
+
+        ApexSingleValue value = visitor.getSingletonResult();
+        MatcherAssert.assertThat(value.getDeclaredType().get(), Matchers.equalTo("Account"));
+        IterationInfo iterationInfo = value.getIterationInfo().get();
+        MatcherAssert.assertThat(iterationInfo.isItemListIndeterminant(), equalTo(true));
+    }
+
+    @Test
+    public void testForEachLoadFromSoql() {
+        String sourceCode = "public class MyClass {\n"
+            + "	void doSomething() {\n" +
+            "      /* sfge-disable ApexCrudFlsViolationRule */\n"
+            + "		List<Account> accounts = [SELECT Id, Name from Account];\n"
+            + "		for (Account acc: accounts) {\n"
+            + "			System.debug(acc);\n"
+            + "		}\n"
+            + "	}\n"
+            + "}\n";
+
+        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.get(g, sourceCode).walkPath();
+        SystemDebugAccumulator visitor = result.getVisitor();
+
+        ApexSingleValue value = visitor.getSingletonResult();
+        MatcherAssert.assertThat(value.getDeclaredType().get(), Matchers.equalTo("Account"));
+        IterationInfo iterationInfo = value.getIterationInfo().get();
+        MatcherAssert.assertThat(iterationInfo.isItemListIndeterminant(), equalTo(true));
     }
 }

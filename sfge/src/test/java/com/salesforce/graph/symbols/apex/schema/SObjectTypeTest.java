@@ -10,6 +10,7 @@ import com.salesforce.TestRunner;
 import com.salesforce.TestUtil;
 import com.salesforce.graph.symbols.apex.ApexSingleValue;
 import com.salesforce.graph.symbols.apex.ApexValue;
+import com.salesforce.graph.symbols.apex.IterationInfo;
 import com.salesforce.graph.visitor.SystemDebugAccumulator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.hamcrest.MatcherAssert;
@@ -18,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.Optional;
 
 public class SObjectTypeTest {
     private GraphTraversalSource g;
@@ -153,5 +156,24 @@ public class SObjectTypeTest {
         MatcherAssert.assertThat(sObjectType.isIndeterminant(), equalTo(true));
         MatcherAssert.assertThat(sObjectType.getType().isPresent(), equalTo(false));
         MatcherAssert.assertThat(sObjectType.getReturnedFrom().isPresent(), equalTo(false));
+    }
+
+    @Test
+    public void testGetDescribeInForLoop() {
+        String sourceCode =
+            "public class MyClass {\n"
+                + "    public static void doSomething(List<SObjectType> sObjTypes) {\n" +
+                "       for (SObjectType sobjType: sObjTypes) {\n"
+                + "       System.debug(sObjType.getDescribe());\n" +
+                "       }\n"
+                + "    }\n"
+                + "}";
+
+        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.walkPath(g, sourceCode);
+        SystemDebugAccumulator visitor = result.getVisitor();
+
+        DescribeSObjectResult describeSObjectResult = visitor.getSingletonResult();
+        IterationInfo iterationInfo = describeSObjectResult.getIterationInfo().get();
+        MatcherAssert.assertThat(iterationInfo.isItemListIndeterminant(), equalTo(true));
     }
 }
