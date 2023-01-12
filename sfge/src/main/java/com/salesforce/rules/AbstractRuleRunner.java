@@ -3,6 +3,7 @@ package com.salesforce.rules;
 import com.salesforce.apex.jorje.ASTConstants;
 import com.salesforce.cli.Result;
 import com.salesforce.exception.ProgrammingException;
+import com.salesforce.graph.FullGraphProvider;
 import com.salesforce.graph.JustInTimeGraphProvider;
 import com.salesforce.graph.Schema;
 import com.salesforce.graph.build.CaseSafePropertyUtil.H;
@@ -11,6 +12,7 @@ import com.salesforce.graph.vertex.MethodVertex;
 import com.salesforce.rules.ops.ProgressListenerProvider;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,11 +24,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 @SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class AbstractRuleRunner {
     private static final Logger LOGGER = LogManager.getLogger(AbstractRuleRunner.class);
-    private final GraphTraversalSource g;
-
-    protected AbstractRuleRunner(GraphTraversalSource g) {
-        this.g = g;
-    }
 
     public Result runRules(List<AbstractRule> rules) {
         return runRules(rules, new ArrayList<>());
@@ -55,6 +52,7 @@ public abstract class AbstractRuleRunner {
     }
 
     private Result runStaticRules(List<AbstractStaticRule> rules, List<RuleRunnerTarget> targets) {
+        final GraphTraversalSource g = FullGraphProvider.get();
         final Result result = new Result();
 
         if (rules.isEmpty()) {
@@ -86,7 +84,8 @@ public abstract class AbstractRuleRunner {
         if (rules.isEmpty()) {
             return new Result();
         }
-        List<MethodVertex> pathEntryPoints = PathEntryPointUtil.getPathEntryPoints(g, targets);
+        List<MethodVertex> pathEntryPoints =
+                PathEntryPointUtil.getPathEntryPoints(FullGraphProvider.get(), targets);
         if (pathEntryPoints.isEmpty()) {
             LOGGER.info("No path-based entry points found");
             return new Result();
@@ -98,7 +97,7 @@ public abstract class AbstractRuleRunner {
         // For each entry point, generate a submission object.
         List<ThreadableRuleExecutor.ThreadableRuleSubmission> submissions = new ArrayList<>();
         for (MethodVertex pathEntryPoint : pathEntryPoints) {
-            submissions.add(getRuleRunnerSubmission(g, pathEntryPoint, rules));
+            submissions.add(getRuleRunnerSubmission(pathEntryPoint, rules));
         }
         return ThreadableRuleExecutor.run(submissions);
     }
@@ -108,24 +107,17 @@ public abstract class AbstractRuleRunner {
      *     a customized subclass of {@code RuleRunnerSubmission}
      */
     protected RuleRunnerSubmission getRuleRunnerSubmission(
-            GraphTraversalSource fullGraph,
-            MethodVertex pathEntry,
-            List<AbstractPathBasedRule> rules) {
-        return new RuleRunnerSubmission(g, pathEntry, rules);
+            MethodVertex pathEntry, List<AbstractPathBasedRule> rules) {
+        return new RuleRunnerSubmission(pathEntry, rules);
     }
 
-    protected class RuleRunnerSubmission
+    protected static class RuleRunnerSubmission
             implements ThreadableRuleExecutor.ThreadableRuleSubmission {
-        private final GraphTraversalSource fullGraph;
         private GraphTraversalSource graph;
         private final MethodVertex pathEntry;
         private final List<AbstractPathBasedRule> rules;
 
-        public RuleRunnerSubmission(
-                GraphTraversalSource fullGraph,
-                MethodVertex pathEntry,
-                List<AbstractPathBasedRule> rules) {
-            this.fullGraph = fullGraph;
+        public RuleRunnerSubmission(MethodVertex pathEntry, List<AbstractPathBasedRule> rules) {
             this.pathEntry = pathEntry;
             this.rules = rules;
         }
@@ -154,11 +146,20 @@ public abstract class AbstractRuleRunner {
         @Override
         public void initializeThreadLocals() {
             if (graph == null) {
-                graph = JustInTimeGraphProvider.create(fullGraph, pathEntry.getDefiningType());
+                graph =
+                        JustInTimeGraphProvider.create(
+                                FullGraphProvider.get(), pathEntry.getDefiningType());
             } else {
                 throw new ProgrammingException(
                         "AbstractRuleRunner.initializeThreadLocals() should only be called once");
             }
+        }
+
+        @Override
+        public void afterRun(TreeSet<Violation> violations) {
+            graph = null;
+            JustInTimeGraphProvider.remove();
+            // TODO: handle violations here if needed
         }
 
         @Override

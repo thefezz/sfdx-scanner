@@ -3,7 +3,6 @@ package com.salesforce.rules;
 import com.salesforce.cli.Result;
 import com.salesforce.config.SfgeConfigProvider;
 import com.salesforce.exception.SfgeRuntimeException;
-import com.salesforce.graph.JustInTimeGraphProvider;
 import com.salesforce.graph.ops.LogUtil;
 import com.salesforce.graph.vertex.MethodVertex;
 import com.salesforce.rules.ops.ProgressListener;
@@ -94,6 +93,7 @@ public class ThreadableRuleExecutor {
             completionService.submit(new CallableExecutor(submission, progressListener));
             submissionCount += 1;
         }
+        submissions.clear();
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Queued " + submissionCount + " path-based rule executions");
         }
@@ -208,7 +208,7 @@ public class ThreadableRuleExecutor {
                 }
             } finally {
                 // TODO: This should be in a method similar to initializeThreadLocals
-                JustInTimeGraphProvider.remove();
+                //                JustInTimeGraphProvider.remove();
             }
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info("Finished. method=" + submission.getPathEntry().toSimpleString());

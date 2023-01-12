@@ -54,7 +54,7 @@ public class RuleRunnerTest {
         List<AbstractRule> rules = new ArrayList<>();
         rules.add(new StaticTestRule());
 
-        AbstractRuleRunner rr = new TestRuleRunner(g, VertexCacheProvider.get());
+        AbstractRuleRunner rr = new TestRuleRunner(VertexCacheProvider.get());
         final Result result = rr.runRules(rules);
         List<Violation> vs = result.getViolations();
 
@@ -81,7 +81,7 @@ public class RuleRunnerTest {
         List<AbstractRule> rules = new ArrayList<>();
         rules.add(new PathBasedTestRule());
 
-        AbstractRuleRunner rr = new TestRuleRunner(g, VertexCacheProvider.get());
+        AbstractRuleRunner rr = new TestRuleRunner(VertexCacheProvider.get());
         final Result result = rr.runRules(rules);
         List<Violation> vs = result.getViolations();
 
@@ -107,7 +107,7 @@ public class RuleRunnerTest {
         List<AbstractRule> rules = new ArrayList<>();
         rules.add(new PathBasedTestRule());
 
-        AbstractRuleRunner rr = new TestRuleRunner(g, VertexCacheProvider.get());
+        AbstractRuleRunner rr = new TestRuleRunner(VertexCacheProvider.get());
         final Result result = rr.runRules(rules);
         List<Violation> vs = result.getViolations();
 
@@ -156,7 +156,7 @@ public class RuleRunnerTest {
         rules.add(new StaticTestRule());
         rules.add(new PathBasedTestRule());
 
-        AbstractRuleRunner rr = new TestRuleRunner(g, VertexCacheProvider.get());
+        AbstractRuleRunner rr = new TestRuleRunner(VertexCacheProvider.get());
         List<RuleRunnerTarget> targets = new ArrayList<>();
         targets.add(TestUtil.createTarget("TestCode0", new ArrayList<>()));
         targets.add(TestUtil.createTarget("TestCode1", new ArrayList<>()));
@@ -282,16 +282,13 @@ public class RuleRunnerTest {
     public static final class TestRuleRunner extends AbstractRuleRunner {
         private final VertexCache vertexCache;
 
-        protected TestRuleRunner(GraphTraversalSource g, VertexCache vertexCache) {
-            super(g);
+        protected TestRuleRunner(VertexCache vertexCache) {
             this.vertexCache = vertexCache;
         }
 
         protected RuleRunnerSubmission getRuleRunnerSubmission(
-                GraphTraversalSource fullGraph,
-                MethodVertex pathEntry,
-                List<AbstractPathBasedRule> rules) {
-            return new RuleRunnerSubmission(fullGraph, pathEntry, rules) {
+                MethodVertex pathEntry, List<AbstractPathBasedRule> rules) {
+            return new RuleRunnerSubmission(pathEntry, rules) {
                 @Override
                 public void initializeThreadLocals() {
                     super.initializeThreadLocals();

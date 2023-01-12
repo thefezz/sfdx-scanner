@@ -16,7 +16,6 @@ import com.salesforce.rules.Violation;
 import com.salesforce.testutils.DummyVertex;
 import java.io.IOException;
 import java.util.List;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +54,7 @@ public class MainTest {
 
     @Mock Main.Dependencies dependencies;
     @Mock CliArgParser.Dependencies argParserDependencies;
-    @Mock GraphTraversalSource g;
+    //    @Mock GraphTraversalSource g;
     @Mock RuleRunner ruleRunner;
 
     @BeforeEach
@@ -67,7 +66,7 @@ public class MainTest {
                 new CliArgParser.ExecuteArgParser(argParserDependencies);
 
         Mockito.lenient().when(dependencies.createExecuteArgParser()).thenReturn(executeArgParser);
-        Mockito.lenient().when(dependencies.getGraph()).thenReturn(g);
+        //        Mockito.lenient().when(dependencies.getGraph()).thenReturn(g);
         CliMessager.getInstance().resetMessages();
     }
 
@@ -100,7 +99,7 @@ public class MainTest {
         Mockito.lenient()
                 .when(ruleRunner.runRules(Mockito.anyList(), Mockito.anyList()))
                 .thenReturn(noViolationNoErrorResult);
-        Mockito.lenient().when(dependencies.createRuleRunner(g)).thenReturn(ruleRunner);
+        Mockito.lenient().when(dependencies.createRuleRunner()).thenReturn(ruleRunner);
 
         final Main main = new Main(dependencies);
         final int exitCode = main.process(EXECUTE_ACTION, EXECUTION_ARGS_FILENAME);
@@ -115,7 +114,7 @@ public class MainTest {
         Mockito.lenient()
                 .when(ruleRunner.runRules(Mockito.anyList(), Mockito.anyList()))
                 .thenReturn(withViolationNoErrorResult);
-        Mockito.lenient().when(dependencies.createRuleRunner(g)).thenReturn(ruleRunner);
+        Mockito.lenient().when(dependencies.createRuleRunner()).thenReturn(ruleRunner);
 
         final Main main = new Main(dependencies);
         final int exitCode = main.process(EXECUTE_ACTION, EXECUTION_ARGS_FILENAME);
@@ -140,7 +139,7 @@ public class MainTest {
         Mockito.lenient()
                 .when(ruleRunner.runRules(Mockito.anyList(), Mockito.anyList()))
                 .thenReturn(withViolationNoErrorResult);
-        Mockito.lenient().when(dependencies.createRuleRunner(g)).thenReturn(ruleRunner);
+        Mockito.lenient().when(dependencies.createRuleRunner()).thenReturn(ruleRunner);
 
         final Main main = new Main(dependencies);
         final int exitCode = main.process(EXECUTE_ACTION, EXECUTION_ARGS_FILENAME);

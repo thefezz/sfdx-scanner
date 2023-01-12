@@ -10,6 +10,7 @@ import com.salesforce.exception.SfgeException;
 import com.salesforce.exception.SfgeRuntimeException;
 import com.salesforce.exception.UnexpectedException;
 import com.salesforce.exception.UserActionException;
+import com.salesforce.graph.FullGraphProvider;
 import com.salesforce.graph.ops.GraphUtil;
 import com.salesforce.messaging.CliMessager;
 import com.salesforce.metainfo.MetaInfoCollector;
@@ -141,12 +142,9 @@ public class Main {
             return EXIT_WITH_INTERNAL_ERROR_NO_VIOLATIONS;
         }
 
-        // Initialize and clean our graph.
-        GraphTraversalSource g = dependencies.getGraph();
-
-        // Compile all of the Apex into ASTs.
+        // Compile all of the Apex into ASTs and load to a fresh graph
         try {
-            dependencies.loadSourceFoldersToGraph(eap, g);
+            dependencies.loadSourceFoldersToGraph(eap);
         } catch (GraphUtil.GraphLoadException ex) {
             LOGGER.error("Error while loading graph", ex);
             dependencies.printError(formatError(ex));
@@ -173,7 +171,7 @@ public class Main {
                                 "This many files: %d. This many rules: %d.",
                                 targets.size(), selectedRules.size()));
             }
-            final RuleRunner ruleRunner = dependencies.createRuleRunner(g);
+            final RuleRunner ruleRunner = dependencies.createRuleRunner();
             result.merge(ruleRunner.runRules(selectedRules, targets));
 
             // Mark analysis as completed
@@ -241,13 +239,13 @@ public class Main {
             return GraphUtil.getGraph();
         }
 
-        void loadSourceFoldersToGraph(CliArgParser.ExecuteArgParser eap, GraphTraversalSource g)
+        void loadSourceFoldersToGraph(CliArgParser.ExecuteArgParser eap)
                 throws GraphUtil.GraphLoadException {
-            GraphUtil.loadSourceFolders(g, eap.getProjectDirs());
+            FullGraphProvider.load(eap.getProjectDirs());
         }
 
-        RuleRunner createRuleRunner(GraphTraversalSource g) {
-            return new RuleRunner(g);
+        RuleRunner createRuleRunner() {
+            return new RuleRunner();
         }
 
         void printError(String message) {
