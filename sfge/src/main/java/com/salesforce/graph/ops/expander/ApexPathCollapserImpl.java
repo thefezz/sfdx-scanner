@@ -39,6 +39,13 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
     }
 
     @Override
+    public void reset() {
+        //        this.dynamicPathCollapsers.clear();
+        this.collapsedExpanders.clear();
+        this.forkEventToApexExpandersWithResults.clear();
+    }
+
+    @Override
     public List<ApexPathExpander> clearCollapsedExpanders() {
         List<ApexPathExpander> result = new ArrayList<>(collapsedExpanders);
         collapsedExpanders.clear();

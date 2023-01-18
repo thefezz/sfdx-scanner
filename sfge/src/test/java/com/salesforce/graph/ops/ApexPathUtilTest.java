@@ -49,6 +49,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 public class ApexPathUtilTest {
+    public static final ApexPathExpanderConfig FULL_CONFIGURED_PATH_EXPANDER_CONFIG =
+            ApexPathUtil.getFullConfiguredPathExpanderConfig();
     private GraphTraversalSource g;
 
     @BeforeEach
@@ -136,7 +138,35 @@ public class ApexPathUtilTest {
                         + "   }\n"
                         + "}\n";
 
-        TestRunner.Result<SystemDebugAccumulator> result = TestRunner.get(g, sourceCode).walkPath();
+        TestRunner.Result<SystemDebugAccumulator> result =
+                TestRunner.get(g, sourceCode)
+                        .withExpanderConfig(FULL_CONFIGURED_PATH_EXPANDER_CONFIG)
+                        .walkPath();
+        SystemDebugAccumulator visitor = result.getVisitor();
+
+        ApexStringValue value = visitor.getSingletonResult();
+        MatcherAssert.assertThat(value.getValue().get(), equalTo("hi"));
+    }
+
+    @Test
+    public void testTwoLevelMethodCall() {
+        String sourceCode =
+                "public class MyClass {\n"
+                        + "    public void doSomething() {\n"
+                        + "       System.debug(getValue1());\n"
+                        + "    }\n"
+                        + "    public static String getValue1() {\n"
+                        + "       return getValue2();\n"
+                        + "    }\n"
+                        + "    public static String getValue2() {\n"
+                        + "       return 'hi';\n"
+                        + "    }\n"
+                        + "}";
+
+        TestRunner.Result<SystemDebugAccumulator> result =
+                TestRunner.get(g, sourceCode)
+                        .withExpanderConfig(FULL_CONFIGURED_PATH_EXPANDER_CONFIG)
+                        .walkPath();
         SystemDebugAccumulator visitor = result.getVisitor();
 
         ApexStringValue value = visitor.getSingletonResult();

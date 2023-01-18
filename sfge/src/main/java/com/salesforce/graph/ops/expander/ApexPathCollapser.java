@@ -43,6 +43,8 @@ interface ApexPathCollapser {
     /** Removes the expander from all maps that are tracking it */
     void removeExistingExpander(ApexPathExpander apexPathExpander);
 
+    void reset();
+
     /**
      * Clear the list of expanders that have been collapsed
      *

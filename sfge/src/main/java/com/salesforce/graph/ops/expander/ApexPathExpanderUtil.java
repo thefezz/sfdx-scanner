@@ -55,7 +55,9 @@ public final class ApexPathExpanderUtil {
             return Collections.emptyList();
         } else {
             ApexPathExpanderUtil apexPathExpanderUtil = new ApexPathExpanderUtil(config);
-            return apexPathExpanderUtil._expand(g, path, config);
+            List<ApexPath> apexPaths = apexPathExpanderUtil._expand(g, path, config);
+            ApexPathCollapserProvider.reset();
+            return apexPaths;
         }
     }
 
@@ -74,11 +76,8 @@ public final class ApexPathExpanderUtil {
     private final ApexPathCollapser apexPathCollapser;
 
     private ApexPathExpanderUtil(ApexPathExpanderConfig config) {
-        if (config.getDynamicCollapsers().isEmpty()) {
-            this.apexPathCollapser = NoOpApexPathCollapser.getInstance();
-        } else {
-            this.apexPathCollapser = new ApexPathCollapserImpl(config.getDynamicCollapsers());
-        }
+        ApexPathCollapserProvider.initialize(config);
+        this.apexPathCollapser = ApexPathCollapserProvider.get();
     }
 
     private List<ApexPath> _expand(

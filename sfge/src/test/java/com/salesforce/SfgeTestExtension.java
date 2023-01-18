@@ -3,6 +3,7 @@ package com.salesforce;
 import com.salesforce.graph.MetadataInfoTestProvider;
 import com.salesforce.graph.TestMetadataInfo;
 import com.salesforce.graph.cache.VertexCacheTestProvider;
+import com.salesforce.graph.ops.expander.ApexPathCollapserTestProvider;
 import com.salesforce.metainfo.MetaInfoCollectorTestProvider;
 import com.salesforce.rules.ops.ProgressListenerTestProvider;
 import org.apache.logging.log4j.LogManager;
@@ -33,6 +34,7 @@ public final class SfgeTestExtension
         VertexCacheTestProvider.initializeForTest();
         MetaInfoCollectorTestProvider.initializeForTest();
         ProgressListenerTestProvider.initializeForTest();
+        ApexPathCollapserTestProvider.initializeForTest();
     }
 
     /**
@@ -48,5 +50,6 @@ public final class SfgeTestExtension
         VertexCacheTestProvider.remove();
         MetaInfoCollectorTestProvider.remove();
         ProgressListenerTestProvider.remove();
+        ApexPathCollapserTestProvider.cleanup();
     }
 }

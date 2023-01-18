@@ -21,6 +21,9 @@ final class NoOpApexPathCollapser implements ApexPathCollapser {
     public void removeExistingExpander(ApexPathExpander apexPathExpander) {}
 
     @Override
+    public void reset() {}
+
+    @Override
     public List<ApexPathExpander> clearCollapsedExpanders() {
         return Collections.emptyList();
     }
