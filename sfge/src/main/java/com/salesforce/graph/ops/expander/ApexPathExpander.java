@@ -79,13 +79,6 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
     /** Graph which owns the path */
     private final GraphTraversalSource g;
 
-    //    /**
-    //     * Object which maintains state about all ApexPathExpanders that are related to the first
-    // path
-    //     * which is being expanded.
-    //     */
-    //    private final ApexPathCollapser apexPathCollapser;
-
     /** Dynamically generated id used to establish object equality */
     private final Long id;
 
@@ -177,14 +170,12 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
     private final int hash;
 
     ApexPathExpander(
-            GraphTraversalSource g,
-            ApexPathCollapser apexPathCollapser,
-            ApexPath topMostPath,
-            ApexPathExpanderConfig config) {
+        GraphTraversalSource g,
+        ApexPath topMostPath,
+        ApexPathExpanderConfig config) {
         this.id = ID_GENERATOR.incrementAndGet();
         this.hash = Objects.hashCode(this.id);
         this.g = g;
-        //        this.apexPathCollapser = apexPathCollapser;
         this.forkEvents = new LinkedHashMap<>();
         this.forkResults = new HashMap<>();
         this.topMostPath = new Stack<>();
@@ -216,7 +207,6 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
         this.id = ID_GENERATOR.incrementAndGet();
         this.hash = Objects.hashCode(this.id);
         this.g = other.g;
-        //        this.apexPathCollapser = other.apexPathCollapser;
         this.forkEvents = CloneUtil.cloneHashMap(other.forkEvents);
         PathVertex pathVertex = ex.getForkEvent().getPathVertex();
         this.forkEvents.put(pathVertex, ex.getForkEvent());

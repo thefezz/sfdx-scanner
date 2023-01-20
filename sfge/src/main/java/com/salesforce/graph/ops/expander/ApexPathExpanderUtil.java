@@ -54,10 +54,8 @@ public final class ApexPathExpanderUtil {
             logFilteredOutPath(throwStatementVertex);
             return Collections.emptyList();
         } else {
-            ApexPathExpanderUtil apexPathExpanderUtil = new ApexPathExpanderUtil(config);
-            List<ApexPath> apexPaths = apexPathExpanderUtil._expand(g, path, config);
-            ApexPathCollapserProvider.reset();
-            return apexPaths;
+            ApexPathExpansionOperator apexPathExpansionOperator = new ApexPathExpansionOperator(config);
+            return apexPathExpansionOperator._expand(g, path, config);
         }
     }
 
@@ -69,14 +67,14 @@ public final class ApexPathExpanderUtil {
         }
     }
 
+    private static class ApexPathExpansionOperator {
     /**
      * The {@code ApexPathCollapser} that keeps track of all paths and attempts to collapse them
      * whenever a forked method has returned a result.
      */
     private final ApexPathCollapser apexPathCollapser;
 
-    private ApexPathExpanderUtil(ApexPathExpanderConfig config) {
-        ApexPathCollapserProvider.initialize(config);
+    private ApexPathExpansionOperator(ApexPathExpanderConfig config) {
         this.apexPathCollapser = ApexPathCollapserProvider.get();
     }
 
@@ -119,19 +117,19 @@ public final class ApexPathExpanderUtil {
         final String className = method.getDefiningType();
         if (method.isStatic()) {
             final ApexPathExpander apexPathExpander =
-                    new ApexPathExpander(g, apexPathCollapser, path, config);
+                    new ApexPathExpander(g, path, config);
             apexPathExpanders.push(apexPathExpander);
         } else {
             if (method instanceof MethodVertex.ConstructorVertex) {
                 final ApexPathExpander apexPathExpander =
-                        new ApexPathExpander(g, apexPathCollapser, path, config);
+                        new ApexPathExpander(g, path, config);
                 apexPathExpanders.push(apexPathExpander);
             } else {
                 final List<MethodVertex.ConstructorVertex> constructors =
                         MethodUtil.getNonDefaultConstructors(g, className);
                 if (constructors.isEmpty()) {
                     final ApexPathExpander apexPathExpander =
-                            new ApexPathExpander(g, apexPathCollapser, path, config);
+                            new ApexPathExpander(g, path, config);
                     apexPathExpanders.push(apexPathExpander);
                 } else {
                     // Expand by number of constructors * number of paths
@@ -142,7 +140,7 @@ public final class ApexPathExpanderUtil {
                             final ApexPath clonedPath = path.deepClone();
                             clonedPath.setConstructorPath(constructorPath);
                             final ApexPathExpander apexPathExpander =
-                                    new ApexPathExpander(g, apexPathCollapser, clonedPath, config);
+                                    new ApexPathExpander(g, clonedPath, config);
                             apexPathExpanders.push(apexPathExpander);
                         }
                     }
@@ -328,5 +326,6 @@ public final class ApexPathExpanderUtil {
         }
 
         return result;
+    }
     }
 }

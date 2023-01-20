@@ -8,12 +8,7 @@ import com.salesforce.apex.jorje.ASTConstants;
 import com.salesforce.exception.UnexpectedException;
 import com.salesforce.graph.ApexPath;
 import com.salesforce.graph.Schema;
-import com.salesforce.graph.ops.expander.ApexPathExpanderConfig;
-import com.salesforce.graph.ops.expander.ApexPathExpanderUtil;
-import com.salesforce.graph.ops.expander.BooleanValuePathConditionExcluder;
-import com.salesforce.graph.ops.expander.NullApexValueConstrainer;
-import com.salesforce.graph.ops.expander.ReturnResultPathCollapser;
-import com.salesforce.graph.ops.expander.SyntheticResultReturnValuePathCollapser;
+import com.salesforce.graph.ops.expander.*;
 import com.salesforce.graph.ops.expander.switches.ApexPathCaseStatementExcluder;
 import com.salesforce.graph.vertex.BaseSFVertex;
 import com.salesforce.graph.vertex.BlockStatementVertex;
@@ -48,7 +43,10 @@ public final class ApexPathUtil {
             GraphTraversalSource g, MethodVertex method, boolean expandMethodCalls) {
         ApexPathExpanderConfig config =
                 ApexPathExpanderConfig.Builder.get().expandMethodCalls(expandMethodCalls).build();
-        return getForwardPaths(g, method, config);
+        ApexPathCollapserProvider.initialize(config);
+        final List<ApexPath> forwardPaths = getForwardPaths(g, method, config);
+        ApexPathCollapserProvider.remove();
+        return forwardPaths;
     }
 
     public static List<ApexPath> getForwardPaths(

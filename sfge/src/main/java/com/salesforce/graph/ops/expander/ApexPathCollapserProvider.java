@@ -1,7 +1,12 @@
 package com.salesforce.graph.ops.expander;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import com.salesforce.exception.ProgrammingException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -11,15 +16,17 @@ public class ApexPathCollapserProvider {
 
     @VisibleForTesting static ThreadLocal<ApexPathCollapser> PATH_COLLAPSERS;
 
-    static void initialize(ApexPathExpanderConfig config) {
+    public static void initialize(ApexPathExpanderConfig config) {
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("initialize() invoked on ApexPathCollaperProvider.");
+            String stackTrace = Arrays.toString(Thread.currentThread().getStackTrace());
+            LOGGER.info("initialize() invoked on ApexPathCollaperProvider:" +  stackTrace);
         }
-        //                if (PATH_COLLAPSERS != null && PATH_COLLAPSERS.get() != null) {
-        //                    throw new ProgrammingException(
-        //                            "ApexPathCollapser for this thread should be initialized only
-        // once.");
-        //                }
+        if (PATH_COLLAPSERS != null && PATH_COLLAPSERS.get() != null) {
+//            throw new ProgrammingException(
+//                "ApexPathCollapser for this thread should be initialized only once.");
+            reset();
+            return;
+        }
         final List<ApexDynamicPathCollapser> dynamicPathCollapsers = config.getDynamicCollapsers();
         if (!dynamicPathCollapsers.isEmpty()) {
             PATH_COLLAPSERS =
@@ -35,9 +42,18 @@ public class ApexPathCollapserProvider {
 
     static void reset() {
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("clear() invoked on ApexPathCollaperProvider.");
+            LOGGER.info("reset() invoked on ApexPathCollaperProvider.");
         }
         PATH_COLLAPSERS.get().reset();
-        PATH_COLLAPSERS.remove();
+    }
+
+    public static void remove() {
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("remove() invoked on ApexPathCollaperProvider.");
+        }
+        if (PATH_COLLAPSERS != null) {
+            PATH_COLLAPSERS.remove();
+            PATH_COLLAPSERS = null;
+        }
     }
 }

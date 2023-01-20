@@ -20,6 +20,7 @@ import com.salesforce.graph.ops.ApexValueUtil;
 import com.salesforce.graph.ops.GraphUtil;
 import com.salesforce.graph.ops.LiteralUtil;
 import com.salesforce.graph.ops.SerializerUtil;
+import com.salesforce.graph.ops.expander.ApexPathCollapserProvider;
 import com.salesforce.graph.ops.expander.ApexPathExpanderConfig;
 import com.salesforce.graph.symbols.DefaultNoOpScope;
 import com.salesforce.graph.symbols.apex.ApexForLoopValue;
@@ -543,7 +544,10 @@ public final class TestUtil {
                                 .hasLabel(ASTConstants.NodeType.METHOD)
                                 .has(Schema.NAME, methodName));
 
-        return ApexPathUtil.getForwardPaths(config.g, methodVertex, apexPathExpanderConfig);
+        ApexPathCollapserProvider.initialize(apexPathExpanderConfig);
+        final List<ApexPath> forwardPaths = ApexPathUtil.getForwardPaths(config.g, methodVertex, apexPathExpanderConfig);
+        ApexPathCollapserProvider.remove();
+        return forwardPaths;
     }
 
     public static List<ApexPath> getApexPaths(

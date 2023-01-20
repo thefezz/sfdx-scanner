@@ -8,6 +8,6 @@ public class ApexPathCollapserTestProvider {
     }
 
     public static void cleanup() {
-        ApexPathCollapserProvider.PATH_COLLAPSERS.remove();
+        ApexPathCollapserProvider.remove();
     }
 }
