@@ -21,5 +21,17 @@
             <AppenderRef ref="LogToFile"/>
             <AppenderRef ref="LogToConsole"/>
         </Root>
+		<Logger name="com.salesforce.graph.ops.expander.ApexPathExpanderUtil" level="INFO" additivity="false">
+			<AppenderRef ref="LogToConsole"/>
+		</Logger>
+		<Logger name="com.salesforce.graph.ops.expander.ApexPathCollapserImpl" level="TRACE" additivity="false">
+			<AppenderRef ref="LogToConsole"/>
+		</Logger>
+		<Logger name="com.salesforce.graph.ops.expander.ApexPathExpander" level="TRACE" additivity="false">
+			<AppenderRef ref="LogToConsole"/>
+		</Logger>
+		<Logger name="com.salesforce.graph.symbols.apex.ApexMapValue" level="TRACE" additivity="false">
+			<AppenderRef ref="LogToConsole"/>
+		</Logger>
     </Loggers>
 </Configuration>

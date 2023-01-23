@@ -74,4 +74,9 @@ class ForkEvent implements DeepCloneable<ForkEvent> {
     public int hashCode() {
         return hash;
     }
+
+    @Override
+    public String toString() {
+        return "ForkEvent{" + "id=" + id + '}';
+    }
 }

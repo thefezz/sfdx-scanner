@@ -413,6 +413,9 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
     void visit(ApexPath path)
             throws PathExcludedException, MethodPathForkedException, RecursionDetectedException,
                     ReturnValueInvalidCollapsedException, PathCollapsedException {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("At visit(ApexPath), ApexPath=" + path);
+        }
         boolean push = path.firstVertex() instanceof BlockStatementVertex;
         List<EngineDirective> engineDirectives = null;
         if (push) {
@@ -476,6 +479,9 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
     private void visit(ApexPath path, BaseSFVertex vertex)
             throws PathExcludedException, MethodPathForkedException, RecursionDetectedException,
                     ReturnValueInvalidCollapsedException, PathCollapsedException {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("At visit(ApexPath, BaseSFVertex), ApexPath=" + path + ", BaseSFVertex=" + vertex);
+        }
         if (ContextProviders.CLASS_STATIC_SCOPE.get() != this) {
             throw new UnexpectedException("ClassStaticScopeContexts don't match");
         }
@@ -807,5 +813,10 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
     @Override
     public int hashCode() {
         return hash;
+    }
+
+    @Override
+    public String toString() {
+        return "ApexPathExpander{" + "id=" + id + '}';
     }
 }

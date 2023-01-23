@@ -1164,4 +1164,35 @@ public class ApexPathUtilTest {
                 TestRunner.walkPaths(g, sourceCode);
         MatcherAssert.assertThat(results, hasSize(equalTo(3)));
     }
+
+    @Test
+    public void testNullPointerExceptionInOptimization() {
+        String[] sourceCode = {
+            "public class MyClass {\n" +
+                "    public static String doSomething() {\n" +
+                "        String output = UTIL_Describe.getBizAccRecTypeID();\n" +
+                "       System.debug(output);\n" +
+                "    }\n" +
+                "}",
+            "public class UTIL_Describe {\n" +
+                "    private static Map<String, Map<String, Id>> mapRecordTypes = new Map<String, Map<String, Id>>();\n" +
+
+                "    public static String getBizAccRecTypeID() {\n" +
+                "        String recTypeId = getRecTypesMapByDevName('Account').get('Business_Organization');\n" +
+                "        return recTypeId;\n" +
+                "    }\n" +
+                "\n" +
+                "    public static Map<String, Id> getRecTypesMapByDevName(String objectName) {\n" +
+                "        return mapRecordTypes.get(objectName);\n" +
+                "    }\n" +
+                "}"
+        };
+
+
+        List<TestRunner.Result<SystemDebugAccumulator>> results =
+            TestRunner.walkPaths(g, sourceCode);
+        MatcherAssert.assertThat(results, hasSize(equalTo(1)));
+
+
+    }
 }

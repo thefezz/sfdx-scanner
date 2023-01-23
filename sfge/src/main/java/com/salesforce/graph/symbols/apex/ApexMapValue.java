@@ -151,6 +151,10 @@ public final class ApexMapValue extends AbstractApexMapValue<ApexMapValue> {
 
     @Override
     public Optional<ApexValue<?>> apply(MethodCallExpressionVertex vertex, SymbolProvider symbols) {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Applying method " + vertex.getFullMethodName() + " on ApexMapValue " + this);
+        }
         ApexValueBuilder builder = ApexValueBuilder.get(symbols).returnedFrom(this, vertex);
         List<ChainedVertex> parameters = vertex.getParameters();
         String methodName = vertex.getMethodName();

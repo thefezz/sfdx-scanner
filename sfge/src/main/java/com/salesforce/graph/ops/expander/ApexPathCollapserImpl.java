@@ -35,7 +35,6 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
 
     ApexPathCollapserImpl(List<ApexDynamicPathCollapser> dynamicPathCollapsers) {
         this.dynamicPathCollapsers = dynamicPathCollapsers;
-        //        this.forkEventToApexExpandersWithResults = new HashMap<>();
         this.forkEventIdToApexExpanderIdsWithResults = new HashMap<>();
         this.collapsedApexPathExpanderIds = new ArrayList<>();
         if (dynamicPathCollapsers.isEmpty()) {
@@ -66,8 +65,10 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
             LOGGER.trace(
                     "Path forked. method="
                             + methodVertex.toSimpleString()
+                            + ", forks size="
+                            + newExpanders.size()
                             + ", forks="
-                            + newExpanders.size());
+                            + newExpanders);
         }
 
         removeExistingExpander(originalExpander);
@@ -102,8 +103,10 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
                             + methodVertex.toSimpleString()
                             + ", result="
                             + apexValue.orElse(null)
+                            + ", apexPathExpanders size="
+                            + apexPathExpanders.size()
                             + ", apexPathExpanders="
-                            + apexPathExpanders.size());
+                            + apexPathExpanders);
         }
 
         // Find all expanders that have a non-null result. These will be considered for collapsing
@@ -117,10 +120,14 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
                             + methodVertex.toSimpleString()
                             + ", result="
                             + apexValue.orElse(null)
-                            + ", apexPathExpanders="
+                            + ", apexPathExpanders size="
                             + apexPathExpanders.size()
+                            + ", apexPathExpandersWithNonNullResults size="
+                            + apexPathExpandersWithNonNullResults.size()
+                            + ", apexPathExpanders="
+                            + apexPathExpanders
                             + ", apexPathExpandersWithNonNullResults="
-                            + apexPathExpandersWithNonNullResults.size());
+                            + apexPathExpandersWithNonNullResults);
         }
 
         if (apexPathExpandersWithNonNullResults.size() == 1) {
@@ -158,7 +165,9 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
                                         + ", collapser="
                                         + collapser.getClass().getSimpleName()
                                         + ", method="
-                                        + methodVertex.toSimpleString());
+                                        + methodVertex.toSimpleString()
+                                        + ", apexPathExpanders="
+                                        + candidates);
                     }
                 }
             }
