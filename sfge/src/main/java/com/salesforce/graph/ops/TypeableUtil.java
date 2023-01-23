@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -29,6 +30,10 @@ public final class TypeableUtil {
     private static final String SET_PATTERN_STR = "set<\\s*([^\\s]*)\\s*>";
     private static final Pattern SET_PATTERN =
             Pattern.compile(SET_PATTERN_STR, Pattern.CASE_INSENSITIVE);
+
+    private static final String MAP_PATTERN_STR = "map<\\s*([^\\s]*),\\s*([^\\s]*)\\s*>";
+    private static final Pattern MAP_PATTERN =
+            Pattern.compile(MAP_PATTERN_STR, Pattern.CASE_INSENSITIVE);
 
     private TypeableUtil() {}
 
@@ -134,6 +139,18 @@ public final class TypeableUtil {
                                 definingType, groupCountExpected, subTypeMatcher.groupCount()));
             }
             return Optional.of(subTypeMatcher.group(1));
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<Pair<String, String>> getMapType(String definingType) {
+        final Matcher matcher = MAP_PATTERN.matcher(definingType);
+        if (matcher.find()) {
+            if (matcher.groupCount() != 2) {
+                throw new UnexpectedException(
+                        "Expected to find two types in map declaration: " + definingType);
+            }
+            return Optional.of(Pair.of(matcher.group(1), matcher.group(2)));
         }
         return Optional.empty();
     }

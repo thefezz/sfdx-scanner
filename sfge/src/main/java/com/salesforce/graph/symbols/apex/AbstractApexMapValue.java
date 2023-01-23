@@ -1,12 +1,10 @@
 package com.salesforce.graph.symbols.apex;
 
-import com.salesforce.exception.UnexpectedException;
 import com.salesforce.graph.DeepCloneable;
+import com.salesforce.graph.ops.TypeableUtil;
 import com.salesforce.graph.vertex.InvocableVertex;
 import com.salesforce.graph.vertex.Typeable;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -23,10 +21,6 @@ public abstract class AbstractApexMapValue<T extends AbstractApexMapValue> exten
     protected static final String METHOD_PUT = "put";
     protected static final String METHOD_SIZE = "size";
     protected static final String METHOD_VALUES = "values";
-
-    private static final String TYPE_PATTERN_STR = "map<\\s*([^\\s]*),\\s*([^\\s]*)\\s*>";
-    private static final Pattern TYPE_PATTERN =
-            Pattern.compile(TYPE_PATTERN_STR, Pattern.CASE_INSENSITIVE);
 
     private final String keyType;
     private final String valueType;
@@ -78,16 +72,6 @@ public abstract class AbstractApexMapValue<T extends AbstractApexMapValue> exten
         }
 
         final String canonicalType = typeable.getCanonicalType();
-        final Matcher matcher = TYPE_PATTERN.matcher(canonicalType);
-        if (matcher.find()) {
-            if (matcher.groupCount() != 2) {
-                throw new UnexpectedException(
-                        "Expected to find two types in map declaration: " + typeable);
-            }
-            return Optional.of(Pair.of(matcher.group(1), matcher.group(2)));
-        }
-
-        // If we don't find a match, we are still okay.
-        return Optional.empty();
+        return TypeableUtil.getMapType(canonicalType);
     }
 }

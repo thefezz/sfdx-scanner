@@ -480,7 +480,11 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
             throws PathExcludedException, MethodPathForkedException, RecursionDetectedException,
                     ReturnValueInvalidCollapsedException, PathCollapsedException {
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("At visit(ApexPath, BaseSFVertex), ApexPath=" + path + ", BaseSFVertex=" + vertex);
+            LOGGER.trace(
+                    "At visit(ApexPath, BaseSFVertex), ApexPath="
+                            + path
+                            + ", BaseSFVertex="
+                            + vertex);
         }
         if (ContextProviders.CLASS_STATIC_SCOPE.get() != this) {
             throw new UnexpectedException("ClassStaticScopeContexts don't match");
