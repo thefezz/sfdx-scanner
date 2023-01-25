@@ -43,16 +43,8 @@ import com.salesforce.graph.vertex.WhenBlockVertex;
 import com.salesforce.graph.visitor.PathVertex;
 import com.salesforce.graph.visitor.VertexPredicateVisitor;
 import com.salesforce.rules.AbstractPathBasedRule;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Stack;
-import java.util.TreeMap;
-import java.util.TreeSet;
+
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
@@ -92,8 +84,9 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
      * that was included in the exception. This ForkEvent creates a common ancestry for all
      * ApexPathExpanders that were a result of the same ForkEvent. These ancestors are the set
      * considered when collapsing paths based on returne results.
+     * This map store PathVertex Id to ForkEvent Id.
      */
-    private final HashMap<PathVertex, ForkEvent> forkEvents;
+    private final HashMap<Long /* PathVertex Id */, Long /* ForkEvent Id */> forkEvents;
 
     /** Stores the result returned from a method if that method caused a fork */
     private final HashMap<PathVertex, Optional<ApexValue<?>>> forkResults;
@@ -223,7 +216,10 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
         this.registry = other.registry;
         this.forkEvents = CloneUtil.cloneHashMap(other.forkEvents);
         PathVertex pathVertex = ex.getForkEvent().getPathVertex();
-        this.forkEvents.put(pathVertex, ex.getForkEvent());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("forkEvents.put() invoked on pathVertex=" + pathVertex + ", forkEvent=" + ex.getForkEvent());
+        }
+        this.forkEvents.put(pathVertex.getId(), ex.getForkEvent().getId());
         this.forkResults = CloneUtil.cloneHashMap(other.forkResults);
         if (this.forkResults.containsKey(pathVertex)) {
             throw new UnexpectedException("Duplicate pathVertex. vertex=" + pathVertex);
@@ -430,7 +426,7 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
             }
         }
         for (BaseSFVertex vertex : path.verticesInCurrentMethod()) {
-            PathVertex pathVertex = new PathVertex(path, vertex);
+            PathVertex pathVertex = PathVertex.getInstance(path, vertex, registry);
             // We can skip the vertex if #afterVisit has already been called
             if (!afterVisitCalled.contains(pathVertex)) {
                 visit(path, vertex);
@@ -465,8 +461,9 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
         return forkResults.get(pathVertex);
     }
 
-    Map<PathVertex, ForkEvent> getForkEvents() {
-        return forkEvents;
+    Collection<ForkEvent> getForkEventValues() {
+        Collection<Long> forkEventIds = forkEvents.values();
+        return PathExpansionRegistryUtil.convertIdsToForkEvents(registry, forkEventIds);
     }
 
     /** */
@@ -490,7 +487,7 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
         }
 
         PathInvocableCall pathInvocableCall = null;
-        PathVertex pathVertex = new PathVertex(path, vertex);
+        PathVertex pathVertex = PathVertex.getInstance(path, vertex, registry);
 
         boolean visitChildren =
                 visitCalled.computeIfAbsent(
@@ -683,7 +680,7 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
                         // not remove the
                         // whole path
                         throw new ReturnValueInvalidCollapsedException(
-                                forkEvents.get(pathVertex), methodPath, lastReturnValue);
+                            getForkEvent(pathVertex), methodPath, lastReturnValue);
                     }
                 }
                 if (forkResults.containsKey(pathVertex)) {
@@ -694,7 +691,7 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
                     final ApexPathCollapser apexPathCollapser =
                             registry.lookupPathCollapser(pathExpansionId);
                     apexPathCollapser.resultReturned(
-                            this, forkEvents.get(pathVertex), lastReturnValue);
+                            this, getForkEvent(pathVertex), lastReturnValue);
                 }
             }
         }
@@ -733,6 +730,16 @@ final class ApexPathExpander implements ClassStaticScopeProvider, EngineDirectiv
             }
             symbolProviderVisitor.popScope(vertex);
         }
+    }
+
+    private ForkEvent getForkEvent(PathVertex pathVertex) {
+        final Long pathVertexId = pathVertex.getId();
+        final Long forkEventId = forkEvents.get(pathVertexId);
+        final ForkEvent forkEventInstance = registry.lookupForkEvent(forkEventId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Getting ForkEvent from forkEvents map. pathVertex=" + pathVertex + ", forkEventId=" + forkEventId + ", forkEvent=" + forkEventInstance);
+        }
+        return forkEventInstance;
     }
 
     /**

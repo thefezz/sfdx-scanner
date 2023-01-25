@@ -332,11 +332,11 @@ public final class ApexPathExpanderUtil {
                 continue;
             }
             // Establish a context so that objects passed by reference are only cloned once
-                        DeepCloneContextProvider.establish();
+            DeepCloneContextProvider.establish();
             try {
                 result.add(new ApexPathExpander(ex.getApexPathExpander(), ex, i));
             } finally {
-                                DeepCloneContextProvider.release();
+                DeepCloneContextProvider.release();
             }
         }
 

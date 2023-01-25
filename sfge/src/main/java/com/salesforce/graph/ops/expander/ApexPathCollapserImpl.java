@@ -217,7 +217,7 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
     @Override
     public void removeExistingExpander(ApexPathExpander apexPathExpander) {
         // Remove the apexPathExpander the list of all returned results
-        for (ForkEvent forkEvent : apexPathExpander.getForkEvents().values()) {
+        for (ForkEvent forkEvent : apexPathExpander.getForkEventValues()) {
             final List<Long> apexPathExpanderIds =
                     forkEventIdToApexExpanderIdsWithResults.get(forkEvent.getId());
 
@@ -240,7 +240,7 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
     /** Adds new expanders that were added by a fork */
     private void addNewExpanders(List<ApexPathExpander> newExpanders) {
         for (ApexPathExpander newExpander : newExpanders) {
-            for (ForkEvent forkEvent : newExpander.getForkEvents().values()) {
+            for (ForkEvent forkEvent : newExpander.getForkEventValues()) {
 
                 List<Long> apexPathExpanderIds =
                         forkEventIdToApexExpanderIdsWithResults.computeIfAbsent(

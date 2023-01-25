@@ -1,6 +1,11 @@
 package com.salesforce.graph.ops.expander;
 
+import com.salesforce.graph.ApexPath;
+import com.salesforce.graph.vertex.BaseSFVertex;
+import com.salesforce.graph.visitor.PathVertex;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -12,7 +17,7 @@ public final class PathExpansionRegistryUtil {
     private PathExpansionRegistryUtil() {}
 
     public static List<ApexPathExpander> convertIdsToApexPathExpanders(
-            PathExpansionRegistry registry, List<Long> apexPathExpanderIds) {
+            PathExpansionRegistry registry, Collection<Long> apexPathExpanderIds) {
         if (apexPathExpanderIds.isEmpty()) {
             return new ArrayList<>();
         }
@@ -22,7 +27,7 @@ public final class PathExpansionRegistryUtil {
     }
 
     public static List<Long> convertApexPathExpandersToIds(
-            PathExpansionRegistry registry, List<ApexPathExpander> apexPathExpanders) {
+        PathExpansionRegistry registry, Collection<ApexPathExpander> apexPathExpanders) {
         if (apexPathExpanders.isEmpty()) {
             return new ArrayList<>();
         }
@@ -36,7 +41,7 @@ public final class PathExpansionRegistryUtil {
     }
 
     public static List<ForkEvent> convertIdsToForkEvents(
-            PathExpansionRegistry registry, List<Long> forkEventIds) {
+            PathExpansionRegistry registry, Collection<Long> forkEventIds) {
         if (forkEventIds.isEmpty()) {
             return new ArrayList<>();
         }
@@ -45,8 +50,7 @@ public final class PathExpansionRegistryUtil {
                 .collect(Collectors.toList());
     }
 
-    public static List<Long> convertForkEventsToIds(
-            PathExpansionRegistry registry, List<ForkEvent> forkEvents) {
+    public static List<Long> convertForkEventsToIds(PathExpansionRegistry registry, Collection<ForkEvent> forkEvents) {
         if (forkEvents.isEmpty()) {
             return new ArrayList<>();
         }

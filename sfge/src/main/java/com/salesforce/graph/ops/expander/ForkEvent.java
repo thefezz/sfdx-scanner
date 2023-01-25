@@ -4,18 +4,25 @@ import com.salesforce.graph.DeepCloneable;
 import com.salesforce.graph.vertex.MethodVertex;
 import com.salesforce.graph.visitor.PathVertex;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Represents a fork that occurred while an {@link ApexPathExpander} was walking a path. This event
  * is stored in the newly forked ApexPathExpanders and ties all future forks together.
  */
 class ForkEvent implements DeepCloneable<ForkEvent> {
-    /** Used to give each object a unique id */
-    private static final AtomicLong ID_GENERATOR = new AtomicLong();
 
-    /** Dynamically generated id used to establish object equality */
-    private final Long id;
+    static ForkEvent getInstance(Long apexPathExpanderId, PathVertex pathVertex, MethodVertex methodVertex, PathExpansionRegistry registry) {
+        final int forkEventId = getForkEventHash(apexPathExpanderId, pathVertex, methodVertex);
+
+        ForkEvent forkEvent;
+        // First check if it's already available in the registry
+        forkEvent = registry.lookupForkEvent(Long.valueOf(forkEventId));
+        if (forkEvent == null) {
+            forkEvent = new ForkEvent(apexPathExpanderId, pathVertex, methodVertex, registry);
+        }
+
+        return forkEvent;
+    }
 
     /** Id of the expander tha was executing when the fork occurred */
     private final Long apexPathExpanderId;
@@ -36,14 +43,17 @@ class ForkEvent implements DeepCloneable<ForkEvent> {
             PathVertex pathVertex,
             MethodVertex methodVertex,
             PathExpansionRegistry registry) {
-        this.id = ID_GENERATOR.incrementAndGet();
         this.apexPathExpanderId = apexPathExpanderId;
         this.pathVertex = pathVertex;
         this.methodVertex = methodVertex;
-        this.hash = Objects.hash(this.apexPathExpanderId, this.pathVertex, this.methodVertex);
+        this.hash = getForkEventHash(apexPathExpanderId, pathVertex, methodVertex);
 
         // Register the newly created ForkEvent
         registry.registerForkEvent(this);
+    }
+
+    private static int getForkEventHash(Long apexPathExpanderId, PathVertex pathVertex, MethodVertex methodVertex) {
+        return Objects.hash(apexPathExpanderId, pathVertex, methodVertex);
     }
 
     @Override
@@ -53,7 +63,7 @@ class ForkEvent implements DeepCloneable<ForkEvent> {
     }
 
     Long getId() {
-        return id;
+        return Long.valueOf(hash);
     }
 
     public PathVertex getPathVertex() {
@@ -77,5 +87,10 @@ class ForkEvent implements DeepCloneable<ForkEvent> {
     @Override
     public int hashCode() {
         return hash;
+    }
+
+    @Override
+    public String toString() {
+        return "ForkEvent{" + "id=" + getId() + '}';
     }
 }

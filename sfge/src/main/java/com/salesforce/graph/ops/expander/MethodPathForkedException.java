@@ -45,10 +45,9 @@ final class MethodPathForkedException extends ApexPathExpanderException {
         this.pathWithFork = pathWithFork;
         this.topLevelVertex = topLevelVertex;
         this.invocable = invocable;
-        PathVertex pathVertex = new PathVertex(pathWithFork, (BaseSFVertex) invocable);
+        PathVertex pathVertex = PathVertex.getInstance(pathWithFork, (BaseSFVertex) invocable, registry);
         MethodVertex methodVertex = paths.get(0).getMethodVertex().get();
-        this.forkEvent =
-                new ForkEvent(apexPathExpander.getId(), pathVertex, methodVertex, registry);
+        this.forkEvent = ForkEvent.getInstance(apexPathExpander.getId(), pathVertex, methodVertex, registry);
     }
 
     ApexPathExpander getApexPathExpander() {

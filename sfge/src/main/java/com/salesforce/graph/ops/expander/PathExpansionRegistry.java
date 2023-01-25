@@ -4,6 +4,8 @@ import com.salesforce.exception.ProgrammingException;
 import com.salesforce.graph.ApexPath;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.salesforce.graph.visitor.PathVertex;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
 /**
@@ -19,18 +21,23 @@ public final class PathExpansionRegistry {
     private final PathCollapserRegistry pathCollapserRegistry;
     private final ForkEventRegistry forkEventRegistry;
     private final ApexPathExpanderRegistry apexPathExpanderRegistry;
+    private final PathVertexRegistry pathVertexRegistry;
 
     public PathExpansionRegistry() {
         pathCollapserRegistry = new PathCollapserRegistry();
         forkEventRegistry = new ForkEventRegistry();
         apexPathExpanderRegistry = new ApexPathExpanderRegistry();
+        pathVertexRegistry = new PathVertexRegistry();
     }
 
     public void clear() {
         pathCollapserRegistry.clear();
         forkEventRegistry.clear();
         apexPathExpanderRegistry.clear();
+        pathVertexRegistry.clear();
     }
+
+    /*** ApexPathCollapser registry methods ***/
 
     public void registerPathCollapser(Long pathExpansionId, ApexPathCollapser pathCollapser) {
         pathCollapserRegistry.validateAndPut(pathExpansionId, pathCollapser);
@@ -48,6 +55,8 @@ public final class PathExpansionRegistry {
         pathCollapserRegistry.validate(pathCollapser);
     }
 
+    /*** ForkEvent registry methods ***/
+
     public void registerForkEvent(ForkEvent forkEvent) {
         forkEventRegistry.validateAndPut(forkEvent.getId(), forkEvent);
     }
@@ -64,6 +73,8 @@ public final class PathExpansionRegistry {
         forkEventRegistry.validate(forkEvent);
     }
 
+    /*** ApexPathExpander registry methods ***/
+
     public void registerApexPathExpander(ApexPathExpander apexPathExpander) {
         apexPathExpanderRegistry.validateAndPut(apexPathExpander.getId(), apexPathExpander);
     }
@@ -78,6 +89,25 @@ public final class PathExpansionRegistry {
 
     public void validateApexPathExpander(ApexPathExpander apexPathExpander) {
         apexPathExpanderRegistry.validate(apexPathExpander);
+    }
+
+    /*** PathVertex registry methods ***/
+
+    public void registerPathVertex(PathVertex pathVertex) {
+        pathVertexRegistry
+            .validateAndPut(pathVertex.getId(), pathVertex);
+    }
+
+    public PathVertex lookupPathVertex(Long pathVertexId) {
+        return pathVertexRegistry.get(pathVertexId);
+    }
+
+    public PathVertex deregisterPathVertex(Long pathVertexId) {
+        return pathVertexRegistry.remove(pathVertexId);
+    }
+
+    public void validatePathVertex(PathVertex pathVertex) {
+        pathVertexRegistry.validate(pathVertex);
     }
 
     /**
@@ -145,6 +175,10 @@ public final class PathExpansionRegistry {
     }
 
     private static class ApexPathExpanderRegistry extends Registry<ApexPathExpander> {
+        // Nothing new to add
+    }
+
+    private static class PathVertexRegistry extends Registry<PathVertex> {
         // Nothing new to add
     }
 }
