@@ -1,6 +1,9 @@
 package com.salesforce.graph.ops.expander;
 
 import com.salesforce.exception.UnexpectedException;
+import com.salesforce.graph.ops.registry.IndexableList;
+import com.salesforce.graph.ops.registry.IndexableMap;
+import com.salesforce.graph.ops.registry.Registry;
 import com.salesforce.graph.symbols.apex.ApexValue;
 import com.salesforce.graph.vertex.MethodVertex;
 import com.salesforce.graph.visitor.PathVertex;
@@ -16,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 final class ApexPathCollapserImpl implements ApexPathCollapser {
     private static final Logger LOGGER = LogManager.getLogger(ApexPathCollapserImpl.class);
 
-    private final PathExpansionRegistry registry;
+    private final Registry registry;
 
     /** This is the list of collapsers that the user has requested */
     private final List<ApexDynamicPathCollapser> dynamicPathCollapsers;
@@ -27,31 +30,37 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
      * ForkEvent, Optional)} are used to find all other ApexPathExpanders that might potentially be
      * collapsed.
      */
-    private final Map<Long, List<Long>> forkEventIdToApexExpanderIdsWithResults;
+    private final IndexableMap<ForkEvent, ApexPathExpander> forkEventToApexExpanderWithResults;
 
     /**
      * The list of Ids of all expanders that ApexPathExpanderUtil should remove on its next
      * iteration
      */
-    private final List<Long> collapsedApexPathExpanderIds;
+    private final IndexableList<ApexPathExpander> collapsedApexPathExpanders;
+
+    private final Long pathExpansionId;
 
     ApexPathCollapserImpl(
-            List<ApexDynamicPathCollapser> dynamicPathCollapsers, PathExpansionRegistry registry) {
+        Long pathExpansionId, List<ApexDynamicPathCollapser> dynamicPathCollapsers, Registry registry) {
+        this.pathExpansionId = pathExpansionId;
         this.dynamicPathCollapsers = dynamicPathCollapsers;
         this.registry = registry;
-        this.forkEventIdToApexExpanderIdsWithResults = new HashMap<>();
-        this.collapsedApexPathExpanderIds = new ArrayList<>();
+        this.forkEventToApexExpanderWithResults = new IndexableMap<>(ForkEvent.class, ApexPathExpander.class, registry);
+        this.collapsedApexPathExpanders = new IndexableList<>(registry, ApexPathExpander.class);
         if (dynamicPathCollapsers.isEmpty()) {
             throw new UnexpectedException("Use NoOpApexPathCollapser");
         }
     }
 
     @Override
+    public Long getId() {
+        return pathExpansionId;
+    }
+
+    @Override
     public List<ApexPathExpander> clearCollapsedExpanders() {
-        List<ApexPathExpander> result =
-                PathExpansionRegistryUtil.convertIdsToApexPathExpanders(
-                        registry, collapsedApexPathExpanderIds);
-        collapsedApexPathExpanderIds.clear();
+        List<ApexPathExpander> result = collapsedApexPathExpanders.getValues();
+        collapsedApexPathExpanders.clear();
         return result;
     }
 
@@ -60,7 +69,7 @@ final class ApexPathCollapserImpl implements ApexPathCollapser {
             ForkEvent forkEvent,
             ApexPathExpander originalExpander,
             List<ApexPathExpander> newExpanders) {
-        if (collapsedApexPathExpanderIds.contains(originalExpander.getId())) {
+        if (collapsedApexPathExpanders.contains(originalExpander)) {
             throw new UnexpectedException("Pending removal was forked");
         }
 

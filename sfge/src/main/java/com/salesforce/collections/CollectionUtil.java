@@ -16,6 +16,10 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import com.salesforce.graph.ops.registry.Indexable;
+import com.salesforce.graph.ops.registry.IndexableMap;
+import com.salesforce.graph.ops.registry.Registry;
 import org.apache.commons.lang3.tuple.Pair;
 
 public final class CollectionUtil {

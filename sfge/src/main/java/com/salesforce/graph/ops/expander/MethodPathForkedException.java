@@ -1,6 +1,7 @@
 package com.salesforce.graph.ops.expander;
 
 import com.salesforce.graph.ApexPath;
+import com.salesforce.graph.ops.registry.Registry;
 import com.salesforce.graph.vertex.BaseSFVertex;
 import com.salesforce.graph.vertex.InvocableVertex;
 import com.salesforce.graph.vertex.MethodVertex;
@@ -39,7 +40,7 @@ final class MethodPathForkedException extends ApexPathExpanderException {
             BaseSFVertex topLevelVertex,
             InvocableVertex invocable,
             List<ApexPath> paths,
-            PathExpansionRegistry registry) {
+            Registry registry) {
         this.apexPathExpander = apexPathExpander;
         this.paths = paths;
         this.pathWithFork = pathWithFork;

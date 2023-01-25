@@ -5,6 +5,7 @@ import com.salesforce.graph.ops.ApexPathUtil;
 import com.salesforce.graph.ops.MethodUtil;
 import com.salesforce.graph.ops.directive.EngineDirective;
 import com.salesforce.graph.ops.directive.EngineDirectiveCommand;
+import com.salesforce.graph.ops.registry.Registry;
 import com.salesforce.graph.symbols.*;
 import com.salesforce.graph.symbols.apex.ApexValue;
 import com.salesforce.graph.vertex.MethodVertex;
@@ -73,18 +74,18 @@ public final class ApexPathExpanderUtil {
 
     private final Long pathExpansionId;
 
-    private final PathExpansionRegistry registry;
+    private final Registry registry;
 
-    private ApexPathExpanderUtil(ApexPathExpanderConfig config, PathExpansionRegistry registry) {
+    private ApexPathExpanderUtil(ApexPathExpanderConfig config, Registry registry) {
         this.pathExpansionId = ID_GENERATOR.incrementAndGet();
         this.registry = registry;
 
         // Create and register ApexPathCollapser
         final ApexPathCollapser apexPathCollapser;
         if (config.getDynamicCollapsers().isEmpty()) {
-            apexPathCollapser = NoOpApexPathCollapser.getInstance();
+            apexPathCollapser = new NoOpApexPathCollapser(pathExpansionId);
         } else {
-            apexPathCollapser = new ApexPathCollapserImpl(config.getDynamicCollapsers(), registry);
+            apexPathCollapser = new ApexPathCollapserImpl(pathExpansionId, config.getDynamicCollapsers(), registry);
         }
 
         registry.registerPathCollapser(pathExpansionId, apexPathCollapser);
