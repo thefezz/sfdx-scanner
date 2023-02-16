@@ -46,6 +46,7 @@
 	},
 	"resolutions": {
 		"bl": "^4.0.3",
+		"esquery": "1.4.0",
 		"lodash": "^4.17.21",
 		"ajv": "^6.12.3",
 		"minimist": "^1.2.3",
