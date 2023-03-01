@@ -53,10 +53,9 @@ public final class ApexNullPointerExceptionRule extends AbstractPathAnomalyRule 
         return violations;
     }
 
-    // TODO: ENABLE THIS RULE.
     @Override
     protected boolean isEnabled() {
-        return false;
+        return true;
     }
 
     @Override
