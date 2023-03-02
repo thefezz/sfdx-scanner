@@ -4,10 +4,7 @@ import com.salesforce.apex.jorje.ASTConstants.NodeType;
 import com.salesforce.collections.CollectionUtil;
 import com.salesforce.graph.Schema;
 import com.salesforce.graph.build.CaseSafePropertyUtil.H;
-import com.salesforce.graph.vertex.InvocableWithParametersVertex;
-import com.salesforce.graph.vertex.MethodVertex;
-import com.salesforce.graph.vertex.SFVertexFactory;
-import com.salesforce.graph.vertex.UserClassVertex;
+import com.salesforce.graph.vertex.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -34,6 +31,12 @@ public class RuleStateTracker {
      * queries is a very high priority for this rule.
      */
     private final Map<String, List<InvocableWithParametersVertex>> methodCallsByDefiningType;
+
+    private final Map<String, List<MethodCallExpressionVertex>> methodCallExpressionsByDefiningType;
+    private final Map<String, List<ThisMethodCallExpressionVertex>>
+            thisMethodCallExpressionsByDefiningType;
+    private final Map<String, List<SuperMethodCallExpressionVertex>>
+            superMethodCallExpressionsByDefiningType;
     /**
      * A map used to cache every subclass of a given class. Minimizing redundant queries is a very
      * high priority for this rule.
@@ -45,6 +48,9 @@ public class RuleStateTracker {
         this.eligibleMethods = new HashSet<>();
         this.unusedMethods = new HashSet<>();
         this.methodCallsByDefiningType = CollectionUtil.newTreeMap();
+        this.methodCallExpressionsByDefiningType = CollectionUtil.newTreeMap();
+        this.thisMethodCallExpressionsByDefiningType = CollectionUtil.newTreeMap();
+        this.superMethodCallExpressionsByDefiningType = CollectionUtil.newTreeMap();
         this.subclassesByDefiningType = CollectionUtil.newTreeMap();
     }
 
@@ -66,6 +72,56 @@ public class RuleStateTracker {
     /** Get the total number of methods deemed eligible for analysis. */
     public int getEligibleMethodCount() {
         return eligibleMethods.size();
+    }
+
+    List<MethodCallExpressionVertex> getMethodCallExpressionsByDefiningType(String definingType) {
+        // First, check if we've already got anything for the desired type.
+        // If so, we can just return that.
+        if (this.methodCallExpressionsByDefiningType.containsKey(definingType)) {
+            return this.methodCallExpressionsByDefiningType.get(definingType);
+        }
+        // Otherwise, get the invocables in the type and filter for MethodCallExpressions.
+        List<MethodCallExpressionVertex> methodCallExpressions =
+                getMethodCallsByDefiningType(definingType).stream()
+                        .filter(i -> i instanceof MethodCallExpressionVertex)
+                        .map(i -> (MethodCallExpressionVertex) i)
+                        .collect(Collectors.toList());
+        this.methodCallExpressionsByDefiningType.put(definingType, methodCallExpressions);
+        return methodCallExpressions;
+    }
+
+    List<ThisMethodCallExpressionVertex> getThisMethodCallExpressionsByDefiningType(
+            String definingType) {
+        // First, check if we've already got anything for the desired type.
+        // If so, we can just return that.
+        if (this.thisMethodCallExpressionsByDefiningType.containsKey(definingType)) {
+            return this.thisMethodCallExpressionsByDefiningType.get(definingType);
+        }
+        // Otherwise, get the invocables in the type and filter for ThisMethodCallExpressions.
+        List<ThisMethodCallExpressionVertex> thisMethodCallExpressions =
+                getMethodCallsByDefiningType(definingType).stream()
+                        .filter(i -> i instanceof ThisMethodCallExpressionVertex)
+                        .map(i -> (ThisMethodCallExpressionVertex) i)
+                        .collect(Collectors.toList());
+        this.thisMethodCallExpressionsByDefiningType.put(definingType, thisMethodCallExpressions);
+        return thisMethodCallExpressions;
+    }
+
+    List<SuperMethodCallExpressionVertex> getSuperMethodCallExpressionsByDefiningType(
+            String definingType) {
+        // First, check if we've already got anything for the desired type.
+        // If so, we can just return that.
+        if (this.superMethodCallExpressionsByDefiningType.containsKey(definingType)) {
+            return this.superMethodCallExpressionsByDefiningType.get(definingType);
+        }
+        // Otherwise, get the invocables in the type and filter for SuperMethodCallExpressions.
+        List<SuperMethodCallExpressionVertex> superMethodCallExpressions =
+                getMethodCallsByDefiningType(definingType).stream()
+                        .filter(i -> i instanceof SuperMethodCallExpressionVertex)
+                        .map(i -> (SuperMethodCallExpressionVertex) i)
+                        .collect(Collectors.toList());
+        this.superMethodCallExpressionsByDefiningType.put(definingType, superMethodCallExpressions);
+        return superMethodCallExpressions;
     }
 
     /** Return a list of every method call occurring in the specified class. */
