@@ -86,6 +86,15 @@ public class MethodCallExpressionVertex extends InvocableWithParametersVertex im
         }
     }
 
+    /**
+     * If this method call occurs in the context of a field declaration, return that declaration.
+     *
+     * @return - Optional containing the field declaration, if it exists.
+     */
+    public Optional<FieldDeclarationVertex> getFieldDeclaration() {
+        return getFirstParentOfType(NodeType.FIELD_DECLARATION);
+    }
+
     public Optional<ClassRefExpressionVertex> getClassRefExpression() {
         AbstractReferenceExpressionVertex abstractReferenceExpression = referenceExpression.get();
         if (abstractReferenceExpression instanceof ReferenceExpressionVertex) {
