@@ -2,7 +2,9 @@ package com.salesforce.rules.unusedmethod;
 
 import com.salesforce.graph.vertex.MethodCallExpressionVertex;
 import com.salesforce.graph.vertex.MethodVertex;
+import com.salesforce.graph.vertex.UserClassVertex;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Helper class for {@link com.salesforce.rules.UnusedMethodRule}. Used for determining whether an
@@ -32,47 +34,139 @@ public class InstanceMethodCallValidator extends BaseMethodCallValidator {
      */
     @Override
     protected boolean internalUsageDetected() {
-        // First, check for usage in the class where the target method is defined.
-        List<MethodCallExpressionVertex> ownClassPotentialCalls =
-                ruleStateTracker.getMethodCallExpressionsByDefiningType(
-                        targetMethod.getDefiningType());
-        for (MethodCallExpressionVertex potentialCall : ownClassPotentialCalls) {
-            // If the call is neither `this.method()` or `method()`, it's not a match.
-            if (!potentialCall.isThisReference() && !potentialCall.isEmptyReference()) {
-                continue;
-            }
-            // If the method name is wrong, it's not a match.
-            if (!potentialCall.getMethodName().equalsIgnoreCase(targetMethod.getName())) {
-                continue;
-            }
-            // If the method's parameters don't match, it's not a match.
-            if (!parametersAreValid(potentialCall)) {
-                continue;
-            }
-            // If all of that worked, then it's a valid match.
-            return true;
-        }
-        // TODO: If class is abstract/virtual and the method is non-private, check subclasses.
-        //       - Get all subclasses
-        //       - Get all MethodCallExpressionVertex instances in each subclass
-        //       - If the subclass overrides the method, only look for super. Otherwise look for
-        // implied/explicit `this` also.
-        //       - Unless the subclass overrides the method, drill into the subclass's subclasses.
-        // TODO: If class is an extension of a superclass and the method is an override, check
-        // superclasses.
-        return false;
+        return usageDetected(new InternalUsageDetector());
     }
 
     /**
      * For instance methods, an "external" usage is one that is performed on an instance of the
      * class by something else.<br>
-     * E.g., {@code instanceOfSomeClass.method()} or {@code new SomeClass().method()}.
+     * This could be {@code someObj.method()} or {@code new SomeClass().method()} where the object
+     * is:
      *
-     * @return - True if the method is invoked externally.
+     * <ol>
+     *   <li>The class where the method is defined.
+     *   <li>A subclass that inherits the method from the class without overriding it.
+     *   <li>A superclass whose implementation of the method is overridden by the class.
+     * </ol>
+     *
+     * @return - true if the method is invoked externally.
      */
     @Override
     protected boolean externalUsageDetected() {
-        // TODO: IMPLEMENT THIS METHOD.
+        return usageDetected(new ExternalUsageDetector());
+    }
+
+    private boolean usageDetected(UsageDetector detector) {
+        // First, use the detector to check for usage via the host class.
+        if (detector.detectsUsage(targetMethod.getDefiningType(), true, false)) {
+            return true;
+        }
+
+        // If the method is heritable, then we also need to check for usage in subclasses.
+        if (methodIsHeritable()) {
+            boolean methodIsVirtual = targetMethod.isVirtual();
+            // Start with a list of the immediate subclasses of the host class.
+            // Note: We use a list to keep the search breadth-first. If it turns out that
+            // depth-first is generally faster, we can switch to a stack instead.
+            List<String> subclassNames =
+                    ruleStateTracker.getSubclasses(targetMethod.getDefiningType());
+            int i = 0;
+            while (i < subclassNames.size()) {
+                String subclassName = subclassNames.get(i);
+                // We need to know whether this subclass merely inherits the method, or if it also
+                // overrides it.
+                boolean subclassOverridesMethod =
+                        methodIsVirtual
+                                && ruleStateTracker.classHasMatchingMethod(
+                                        subclassName, targetMethod.getSignature(), false);
+                // If we find a usage in this subclass, we're done.
+                if (detector.detectsUsage(subclassName, !subclassOverridesMethod, true)) {
+                    return true;
+                }
+
+                // Otherwise, if the subclass is itself extensible and didn't override the target
+                // method, then its own subclasses must be added for consideration.
+                if (!subclassOverridesMethod) {
+                    subclassNames.addAll(ruleStateTracker.getSubclasses(subclassName));
+                }
+                // Finally, increment the index to the next subclass.
+                i += 1;
+            }
+        }
+
+        // If the method overrides an inherited method, then we also need to check the superclasses.
+        if (targetMethod.isOverride()) {
+            // Start with the first superclass. We know it exists because otherwise the code
+            // wouldn't compile.
+            Optional<UserClassVertex> superClassOptional =
+                    ruleStateTracker.getSuperClass(targetMethod.getParentClass().get());
+            String targetSignature = targetMethod.getSignature();
+            while (superClassOptional.isPresent()) {
+                UserClassVertex superClass = superClassOptional.get();
+                // If the superclass uses the method, we're done.
+                if (detector.detectsUsage(superClass.getName(), true, false)) {
+                    return true;
+                }
+                // Otherwise, if this superclass isn't the original declaration of the target method
+                // (i.e. it either doesn't have an implementation for that method or its
+                // implementation is itself an override), we need to go up to the next superclass.
+                Optional<MethodVertex> superMethodOptional =
+                        ruleStateTracker.getMethodWithSignature(
+                                superClass.getDefiningType(), targetSignature, false);
+                if (!superMethodOptional.isPresent() || superMethodOptional.get().isOverride()) {
+                    superClassOptional = ruleStateTracker.getSuperClass(superClass);
+                } else {
+                    // If this is the original source of the method and we found no usage, we're
+                    // done.
+                    break;
+                }
+            }
+        }
+        // If we're here, then we've exhausted all our options for this reference type, and can
+        // return false.
         return false;
+    }
+
+    private abstract static class UsageDetector {
+        abstract boolean detectsUsage(String definingType, boolean seekThis, boolean seekSuper);
+    }
+
+    private class InternalUsageDetector extends UsageDetector {
+        @Override
+        protected boolean detectsUsage(String definingType, boolean seekThis, boolean seekSuper) {
+            // Get all method call expressions occurring in the target class.
+            List<MethodCallExpressionVertex> potentialCalls =
+                    ruleStateTracker.getMethodCallExpressionsByDefiningType(definingType);
+            for (MethodCallExpressionVertex potentialCall : potentialCalls) {
+                // An empty reference is an implicit `this` reference.
+                boolean isThis =
+                        potentialCall.isThisReference() || potentialCall.isEmptyReference();
+                // Unless this reference is one of the types we're looking for, we skip it.
+                // Note: I could have simplified this with De Morgan's Law, but prioritized
+                // readability instead.
+                if (!(seekThis && isThis) && !(seekSuper && potentialCall.isSuperReference())) {
+                    continue;
+                }
+                // If the name is wrong, it's not a match.
+                if (!potentialCall.getFullMethodName().equalsIgnoreCase(targetMethod.getName())) {
+                    continue;
+                }
+                // If the parameters are wrong, it's not a match.
+                if (!parametersAreValid(potentialCall)) {
+                    continue;
+                }
+                // If all our other checks passed, it's a valid call.
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private class ExternalUsageDetector extends UsageDetector {
+        @Override
+        protected boolean detectsUsage(String definingType, boolean seekThis, boolean seekSuper) {
+            // TODO: IMPLEMENT THIS METHOD
+            return false;
+        }
     }
 }

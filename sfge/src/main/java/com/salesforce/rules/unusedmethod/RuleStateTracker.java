@@ -108,9 +108,6 @@ public class RuleStateTracker {
     /**
      * Get every {@link MethodCallExpressionVertex} occurring in the class represented by {@code
      * definingType}.
-     *
-     * @param definingType
-     * @return
      */
     List<MethodCallExpressionVertex> getMethodCallExpressionsByDefiningType(String definingType) {
         populateMethodCallCachesForDefiningType(definingType);
@@ -120,9 +117,6 @@ public class RuleStateTracker {
     /**
      * Get every {@link ThisMethodCallExpressionVertex} occurring in the class represented by {@code
      * definingType}.
-     *
-     * @param definingType
-     * @return
      */
     List<ThisMethodCallExpressionVertex> getThisMethodCallExpressionsByDefiningType(
             String definingType) {
@@ -133,9 +127,6 @@ public class RuleStateTracker {
     /**
      * Get every {@link SuperMethodCallExpressionVertex} occurring in the class represented by
      * {@code definingType}.
-     *
-     * @param definingType
-     * @return
      */
     List<SuperMethodCallExpressionVertex> getSuperMethodCallExpressionsByDefiningType(
             String definingType) {
@@ -147,8 +138,6 @@ public class RuleStateTracker {
      * Populate the various method call caches for the class represented by {@code definingType}. Do
      * all of them in the same method because it's exceedingly likely that we'll need all of them at
      * one point or another.
-     *
-     * @param definingType
      */
     private void populateMethodCallCachesForDefiningType(String definingType) {
         // If we've already populated the caches for this defining type, there's nothing to do.
@@ -186,6 +175,10 @@ public class RuleStateTracker {
         thisMethodCallExpressionsByDefiningType.put(definingType, thisMethodCallExpressions);
         superMethodCallExpressionsByDefiningType.put(definingType, superMethodCallExpressions);
         cachedDefiningTypes.add(definingType);
+    }
+
+    Optional<UserClassVertex> getSuperClass(UserClassVertex childClass) {
+        return ClassUtil.getSuperClass(g, childClass);
     }
 
     /** Get all immediate subclasses of the provided classes. */
@@ -230,14 +223,27 @@ public class RuleStateTracker {
     }
 
     /**
+     * If the specified class has (or optionally, inherits) a method with the desired signature,
+     * that method is returned.
+     */
+    Optional<MethodVertex> getMethodWithSignature(
+            String definingType, String signature, boolean includeInheritedMethods) {
+        return MethodUtil.getMethodWithSignature(
+                g, definingType, signature, includeInheritedMethods);
+    }
+
+    /**
      * Indicates whether the specified class has/inherits a method with the specified signature
      *
      * @param definingType - A class name
      * @param signature - The signature of a method
+     * @param includeInheritedMethods - Allows the check to include methods inherited from
+     *     superclasses
      * @return True if class has method, else false
      */
-    boolean classInheritsMatchingMethod(String definingType, String signature) {
-        return MethodUtil.getMethodWithSignature(g, definingType, signature, true).isPresent();
+    boolean classHasMatchingMethod(
+            String definingType, String signature, boolean includeInheritedMethods) {
+        return getMethodWithSignature(definingType, signature, includeInheritedMethods).isPresent();
     }
 
     /**
