@@ -45,4 +45,8 @@ public abstract class FieldWithModifierVertex extends ChainedVertex {
     public boolean isGlobal() {
         return getModifierNode().isGlobal();
     }
+
+    public boolean isOverride() {
+        return getModifierNode().isOverride();
+    }
 }
