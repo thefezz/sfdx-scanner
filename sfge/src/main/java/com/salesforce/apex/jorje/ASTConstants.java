@@ -10,28 +10,7 @@ import apex.jorje.semantic.ast.compilation.UserEnum;
 import apex.jorje.semantic.ast.compilation.UserInterface;
 import apex.jorje.semantic.ast.compilation.UserTrigger;
 import apex.jorje.semantic.ast.condition.StandardCondition;
-import apex.jorje.semantic.ast.expression.ArrayLoadExpression;
-import apex.jorje.semantic.ast.expression.AssignmentExpression;
-import apex.jorje.semantic.ast.expression.BinaryExpression;
-import apex.jorje.semantic.ast.expression.BooleanExpression;
-import apex.jorje.semantic.ast.expression.CastExpression;
-import apex.jorje.semantic.ast.expression.ClassRefExpression;
-import apex.jorje.semantic.ast.expression.EmptyReferenceExpression;
-import apex.jorje.semantic.ast.expression.LiteralExpression;
-import apex.jorje.semantic.ast.expression.MethodCallExpression;
-import apex.jorje.semantic.ast.expression.NewKeyValueObjectExpression;
-import apex.jorje.semantic.ast.expression.NewListLiteralExpression;
-import apex.jorje.semantic.ast.expression.NewObjectExpression;
-import apex.jorje.semantic.ast.expression.PostfixExpression;
-import apex.jorje.semantic.ast.expression.PrefixExpression;
-import apex.jorje.semantic.ast.expression.ReferenceExpression;
-import apex.jorje.semantic.ast.expression.SoqlExpression;
-import apex.jorje.semantic.ast.expression.SoslExpression;
-import apex.jorje.semantic.ast.expression.SuperMethodCallExpression;
-import apex.jorje.semantic.ast.expression.ThisMethodCallExpression;
-import apex.jorje.semantic.ast.expression.ThisVariableExpression;
-import apex.jorje.semantic.ast.expression.TriggerVariableExpression;
-import apex.jorje.semantic.ast.expression.VariableExpression;
+import apex.jorje.semantic.ast.expression.*;
 import apex.jorje.semantic.ast.member.Field;
 import apex.jorje.semantic.ast.member.Method;
 import apex.jorje.semantic.ast.member.Parameter;
@@ -148,6 +127,8 @@ public final class ASTConstants {
         public static final String STANDARD_CONDITION = getVertexLabel(StandardCondition.class);
         public static final String SUPER_METHOD_CALL_EXPRESSION =
                 getVertexLabel(SuperMethodCallExpression.class);
+        public static final String SUPER_VARIABLE_EXPRESSION =
+                getVertexLabel(SuperVariableExpression.class);
         public static final String THIS_METHOD_CALL_EXPRESSION =
                 getVertexLabel(ThisMethodCallExpression.class);
         public static final String THIS_VARIABLE_EXPRESSION =

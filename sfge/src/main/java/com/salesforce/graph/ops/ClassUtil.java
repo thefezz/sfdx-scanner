@@ -168,5 +168,13 @@ public final class ClassUtil {
                         .hasLabel(ASTConstants.NodeType.USER_CLASS));
     }
 
+    public static Optional<UserClassVertex> getSuperClass(
+            GraphTraversalSource g, UserClassVertex userClassVertex) {
+        UserClassVertex superClass =
+                SFVertexFactory.loadSingleOrNull(
+                        g, g.V().hasId(userClassVertex.getId()).out(Schema.EXTENSION_OF));
+        return superClass == null ? Optional.empty() : Optional.of(superClass);
+    }
+
     private ClassUtil() {}
 }

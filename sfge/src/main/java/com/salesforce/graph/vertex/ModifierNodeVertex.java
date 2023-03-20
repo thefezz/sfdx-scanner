@@ -71,6 +71,10 @@ public class ModifierNodeVertex extends BaseSFVertex {
         return getBoolean(Schema.VIRTUAL);
     }
 
+    public boolean isOverride() {
+        return getBoolean(Schema.OVERRIDE);
+    }
+
     public Integer getModifiers() {
         return (Integer) properties.get(Schema.MODIFIERS);
     }
