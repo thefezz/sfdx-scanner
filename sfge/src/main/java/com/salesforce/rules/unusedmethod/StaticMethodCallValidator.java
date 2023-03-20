@@ -106,8 +106,8 @@ public class StaticMethodCallValidator extends BaseMethodCallValidator {
                 // If this inner class has/inherits a method with the same signature as the target
                 // method,
                 // then internal-style calls will be to that method instead of the target method.
-                if (ruleStateTracker.classInheritsMatchingMethod(
-                        innerClass.getDefiningType(), targetMethod.getSignature())) {
+                if (ruleStateTracker.classHasMatchingMethod(
+                        innerClass.getDefiningType(), targetMethod.getSignature(), true)) {
                     continue;
                 }
                 // Otherwise, check the inner class for calls.
