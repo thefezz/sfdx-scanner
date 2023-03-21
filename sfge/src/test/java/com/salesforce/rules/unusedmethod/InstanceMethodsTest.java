@@ -21,13 +21,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      *
      * @param visibility - The target method's visibility scope.
      */
-    // TODO: ENABLE MORE TESTS AS WE ADD MORE FUNCTIONALITY
-    @ValueSource(
-            strings = {
-                // "public",
-                // "protected",
-                "private"
-            })
+    @ValueSource(strings = {"public", "protected", "private"})
     @ParameterizedTest(name = "{displayName}: {0} instance")
     public void instanceWithoutInvocation_expectViolation(String visibility) {
         String sourceCode = String.format(SIMPLE_UNUSED_OUTER_METHOD_SOURCE, visibility);
@@ -40,13 +34,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      *
      * @param visibility - The target method's visibility scope.
      */
-    // TODO: ENABLE MORE TESTS AS WE ADD MORE FUNCTIONALITY
-    @ValueSource(
-            strings = {
-                // "public",
-                // "protected",
-                "private"
-            })
+    @ValueSource(strings = {"public", "protected", "private"})
     @ParameterizedTest(name = "{displayName}: {0} instance")
     public void innerInstanceWithoutInvocation_expectViolation(String visibility) {
         // spotless:off
@@ -73,11 +61,11 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      *     {@code this.method1()}.
      */
     @CsvSource({
-        // "public, method1()",
-        // "protected, method1()",
+        "public, method1()",
+        "protected, method1()",
         "private, method1()",
-        // "public, this.method1()",
-        // "protected, this.method1()",
+        "public, this.method1()",
+        "protected, this.method1()",
         "private, this.method1()"
     })
     @ParameterizedTest(name = "{displayName}: {0} instance method invoked as {1}")
@@ -120,7 +108,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "protected, grandchild, super.methodOnParent()",
     })
     @ParameterizedTest(name = "{displayName}: Called by {0} in {1} as {2}")
-    @Disabled
     public void instanceInvokedByInheritingSubclass_expectNoViolation(
             String testedVisibility, String callerClass, String invocation) {
         // Either the child or grandchild will invoke the parent method. The other will return a
@@ -151,7 +138,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
                 "testedMethod()"
             })
     @ParameterizedTest(name = "{displayName}: Invoked via {0}")
-    @Disabled
     public void instanceNotInvokedByOverridingSubclass_expectViolation(String invocation) {
         // Fill in the source code template.
         String[] sourceCodes =
@@ -189,7 +175,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "abstract, getBool()",
     })
     @ParameterizedTest(name = "{displayName}: superclass is {0}, method invoked as {1}")
-    @Disabled
     public void instanceInvokedByOriginatingSuperclass_expectNoViolation(
             String superclassModifier, String invocation) {
         String[] sourceCodes =
