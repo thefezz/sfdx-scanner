@@ -2,7 +2,6 @@ package com.salesforce.rules.unusedmethod;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -19,7 +18,6 @@ public class CollidingNamesTest extends BaseUnusedMethodTest {
      */
     @Test
     // TODO: INSTEAD OF SIMPLY ENABLING THIS TEST, CONSIDER MOVING IT TO InstanceMethodsTest.java!
-    @Disabled
     public void innerClassNameOverlapsWithOuter_expectViolations() {
         // spotless:off
         String[] sourceCodes = {

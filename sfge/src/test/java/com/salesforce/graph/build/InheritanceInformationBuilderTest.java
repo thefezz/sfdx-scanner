@@ -240,7 +240,7 @@ public class InheritanceInformationBuilderTest {
         String[] sourceCodes = {
             // This class implements its own inner interface without using the outer class name.
             "public class OuterClass1 implements NameOverlappedInterface {\n"
-                    + "    public class NameOverlappedInterface {}\n"
+                    + "    public interface NameOverlappedInterface {}\n"
                     + "}",
             // This interface has the same name as the inner interface the other class extends.
             "public interface NameOverlappedInterface {}",

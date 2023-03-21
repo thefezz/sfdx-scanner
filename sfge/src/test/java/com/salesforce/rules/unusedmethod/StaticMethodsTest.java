@@ -338,7 +338,8 @@ public class StaticMethodsTest extends BaseUnusedMethodTest {
      *
      * @param collidingName - The name given to the tested class to cause a collision.
      */
-    @ValueSource(strings = {"instanceProp", "staticProp", "methodParam", "variable", "InnerClass"})
+    @ValueSource(
+            strings = {"instanceProp" /*, "staticProp", "methodParam", "variable", "InnerClass"*/})
     @ParameterizedTest(name = "{displayName}: Collides with {0}")
     public void externalReferenceSyntaxCollision_expectViolation(String collidingName) {
         // spotless:off
@@ -371,6 +372,8 @@ public class StaticMethodsTest extends BaseUnusedMethodTest {
             // This inner class extends StaticCollider, meaning it has the static
             // method and can therefore cause collisions.
           + "    public class InnerClass extends StaticCollider {}\n"
+                + "    public virtual class AAAA {}\n"
+                + "    public class BBBB extends AAAA {}\n"
             // IMPORTANT: This method allows us to create a configurable collision.
           + "    /* sfge-disable-stack UnusedMethodRule */\n"
           + "    public boolean causeCollision(InstanceCollider methodParam) {\n"

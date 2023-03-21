@@ -1,6 +1,5 @@
 package com.salesforce.rules.unusedmethod;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -17,33 +16,32 @@ public class MiddlemanTest extends BaseUnusedMethodTest {
     @ValueSource(
             strings = {
                 // Call on a parameter to the method.
-                "directParam",
-                // Call on a variable
-                "directVariable",
-                // Call on an instance property
-                "instanceProp",
+                // "directParam",
+                //// Call on a variable
+                // "directVariable",
+                //// Call on an instance property
+                // "instanceProp",
                 "this.instanceProp",
-                // Call on a static property
-                "staticProp",
-                "InvokingClass.staticProp",
-                // Call on a static method return
-                "staticMethod()",
-                "InvokingClass.staticMethod()",
-                // Call on an instance method return
-                "instanceMethod()",
-                "this.instanceMethod()",
-                // Call properties and methods on a middleman parameter
-                "middlemanParam.instanceMiddlemanProperty",
-                "middlemanParam.instanceMiddlemanMethod()",
-                // Call properties and methods on a middleman variable
-                "middlemanVariable.instanceMiddlemanProperty",
-                "middlemanVariable.instanceMiddlemanMethod()",
-                // Call static properties and methods on middleman class
-                "MiddlemanClass.staticMiddlemanProperty",
-                "MiddlemanClass.staticMiddlemanMethod()"
+                //// Call on a static property
+                // "staticProp",
+                // "InvokingClass.staticProp",
+                //// Call on a static method return
+                // "staticMethod()",
+                // "InvokingClass.staticMethod()",
+                //// Call on an instance method return
+                // "instanceMethod()",
+                // "this.instanceMethod()",
+                //// Call properties and methods on a middleman parameter
+                // "middlemanParam.instanceMiddlemanProperty",
+                // "middlemanParam.instanceMiddlemanMethod()",
+                //// Call properties and methods on a middleman variable
+                // "middlemanVariable.instanceMiddlemanProperty",
+                // "middlemanVariable.instanceMiddlemanMethod()",
+                //// Call static properties and methods on middleman class
+                // "MiddlemanClass.staticMiddlemanProperty",
+                // "MiddlemanClass.staticMiddlemanMethod()"
             })
     @ParameterizedTest(name = "{displayName}: {0}")
-    @Disabled
     public void instanceMethodCalledExternallyWithinMethod_expectNoViolation(
             String objectInstance) {
         String[] sourceCodes = {

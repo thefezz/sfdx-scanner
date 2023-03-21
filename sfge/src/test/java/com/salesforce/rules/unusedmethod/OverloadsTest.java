@@ -22,11 +22,11 @@ public class OverloadsTest extends BaseUnusedMethodTest {
     @CsvSource({
         // Provide the arity of the *other* method, since that's the one that is uncalled.
         // One set per method, per visibility scope.
-        // "public,  overloadedMethod(),  1",
-        // "protected,  overloadedMethod(),  1",
+        "public,  overloadedMethod(),  1",
+        "protected,  overloadedMethod(),  1",
         "private,  overloadedMethod(),  1",
-        // "public,  overloadedMethod(false),  0",
-        // "protected,  overloadedMethod(false),  0",
+        "public,  overloadedMethod(false),  0",
+        "protected,  overloadedMethod(false),  0",
         "private,  overloadedMethod(false),  0"
     })
     @ParameterizedTest(name = "{displayName}: {0} {1}")

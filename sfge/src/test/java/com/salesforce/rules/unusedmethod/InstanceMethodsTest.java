@@ -2,7 +2,6 @@ package com.salesforce.rules.unusedmethod;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -14,18 +13,13 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 public class InstanceMethodsTest extends BaseUnusedMethodTest {
 
+    // ====== SECTION 1: OBVIOUSLY UNUSED METHODS ======
     /**
      * Simple tests verifying that obviously unused instance methods are flagged as unused.
      *
      * @param visibility - The target method's visibility scope.
      */
-    // TODO: ENABLE MORE TESTS AS WE ADD MORE FUNCTIONALITY
-    @ValueSource(
-            strings = {
-                // "public",
-                // "protected",
-                "private"
-            })
+    @ValueSource(strings = {"public", "protected", "private"})
     @ParameterizedTest(name = "{displayName}: {0} instance")
     public void instanceWithoutInvocation_expectViolation(String visibility) {
         String sourceCode = String.format(SIMPLE_UNUSED_OUTER_METHOD_SOURCE, visibility);
@@ -38,13 +32,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      *
      * @param visibility - The target method's visibility scope.
      */
-    // TODO: ENABLE MORE TESTS AS WE ADD MORE FUNCTIONALITY
-    @ValueSource(
-            strings = {
-                // "public",
-                // "protected",
-                "private"
-            })
+    @ValueSource(strings = {"public", "protected", "private"})
     @ParameterizedTest(name = "{displayName}: {0} instance")
     public void innerInstanceWithoutInvocation_expectViolation(String visibility) {
         // spotless:off
@@ -60,8 +48,9 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         assertViolations(sourceCode, "unusedMethod");
     }
 
+    // ====== SECTION 2: INTERNAL CALLS ======
     /**
-     * Tests for cases where an instance method is called by the class that defines it.
+     * Tests for cases where an object instance invokes its own instance method.
      *
      * @param testedVisibility - The visibility of the tested method. Any except global, since
      *     globals are ineligible.
@@ -69,11 +58,11 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      *     {@code this.method1()}.
      */
     @CsvSource({
-        // "public, method1()",
-        // "protected, method1()",
+        "public, method1()",
+        "protected, method1()",
         "private, method1()",
-        // "public, this.method1()",
-        // "protected, this.method1()",
+        "public, this.method1()",
+        "protected, this.method1()",
         "private, this.method1()"
     })
     @ParameterizedTest(name = "{displayName}: {0} instance method invoked as {1}")
@@ -87,8 +76,8 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
     }
 
     /**
-     * Tests for cases where an instance method is called on a subclass of the class that defines
-     * it.
+     * Tests for cases where an object instance invokes an instance method it inherited from a
+     * parent or grandparent.
      *
      * @param testedVisibility - The visibility of the tested method. Either public or protected,
      *     since private isn't heritable.
@@ -116,8 +105,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "protected, grandchild, super.methodOnParent()",
     })
     @ParameterizedTest(name = "{displayName}: Called by {0} in {1} as {2}")
-    @Disabled
-    public void instanceInvokedBySubclass_expectNoViolation(
+    public void instanceInvokedByInheritingSubclass_expectNoViolation(
             String testedVisibility, String callerClass, String invocation) {
         // Either the child or grandchild will invoke the parent method. The other will return a
         // literal true.
@@ -135,8 +123,8 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
     }
 
     /**
-     * Tests for cases where a method is overridden by a subclass, and that version is called
-     * instead of the original version. The original version should have a violation.
+     * Tests for cases where an object instance inherits a method, overrides it, and calls the
+     * overriding version. The inherited version should have a violation.
      *
      * @param invocation - The manner in which the override is invoked
      */
@@ -147,7 +135,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
                 "testedMethod()"
             })
     @ParameterizedTest(name = "{displayName}: Invoked via {0}")
-    @Disabled
     public void instanceOverriddenAndNotInvoked_expectViolation(String invocation) {
         // spotless:off
         String[] sourceCodes = new String[]{
@@ -180,15 +167,13 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
     }
 
     /**
-     * Tests for cases where an instance method is invoked on an instance of its defining class or a
-     * subclass that inherits it without overriding it.
+     * Tests for cases where a variable is instantiated and an instance method it defines/inherits is called.
      *
      * @param hostClass - The class to be instantiated
      */
     @ValueSource(strings = {"ParentClass", "ChildClass", "GrandchildClass"})
     @ParameterizedTest(name = "{displayName}: Instance of {0}")
-    @Disabled
-    public void instanceInvokedOnObjectInstance_expectNoViolation(String hostClass) {
+    public void instanceInvokedOnVariable_expectNoViolation(String hostClass) {
         // spotless:off
         String[] sourceCodes = new String[] {
             // The parent method will be public, and neither the child nor grandchild will invoke it.
@@ -209,12 +194,10 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
     }
 
     /**
-     * Test for the case where an instance method is overridden by a subclass, then the subclass is
-     * instantiated and the override version is called instead of the original.
+     * Tests for cases where a variable is instantiated and the invoked instance method is an override of an inherited method. In this case, the inherited method should count as unused.
      */
     @Test
-    @Disabled
-    public void instanceInvokedOnOverriddenSubclass_expectViolation() {
+    public void instanceInvokedOnOverridingVariable_expectViolation() {
         // spotless:off
         String[] sourceCodes = new String[]{
             // PARENT CLASS
@@ -248,9 +231,8 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
     }
 
     /**
-     * Tests for the cases where a method overrides a method it inherited from a parent class, and
-     * the parent class calls the method. The method should count as used, because this paradigm is
-     * exceedingly popular for abstract classes.
+     * Tests for cases where a method is defined in a superclass, invoked in that superclass, and also overridden in a subclass.
+     * In this case, the subclass version should count as used, because that's how inheritance works. It's a little counterintuitive, but it's an exceedingly common paradigm for abstract classes, so it's one we should support.
      *
      * @param superclassModifier - The modifier that allows the superclass to be heritable.
      * @param invocation - The manner in which the superclass invokes the method.
@@ -262,7 +244,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "abstract, getBool()"
     })
     @ParameterizedTest(name = "{displayName}: {0} superclass, invoked as {1}")
-    @Disabled
     public void instanceInvokedBySuperclass_expectNoViolation(
             String superclassModifier, String invocation) {
         // spotless:off
@@ -294,13 +275,13 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      * Tests for cases where a method overrides a superclass's method, and the method is called on
      * an instance of the superclass. In this case, the method should count as used, because this
      * paradigm is very common with abstract classes in particular.
+     * Tests for cases where an instance meth
      *
      * @param superclassModifier - The modifier applied to the superclass that makes it heritable.
      */
     @ValueSource(strings = {"virtual", "abstract"})
     @ParameterizedTest(name = "{displayName}: {0} superclass")
-    @Disabled
-    public void instanceInvokedOnSuperclass_expectNoViolation(String superclassModifier) {
+    public void instanceInvokedOnSuperclassVariable_expectNoViolation(String superclassModifier) {
         // spotless:off
         String[] sourceCodes = new String[] {
             "global " + superclassModifier + " class Superclass {\n"
@@ -320,6 +301,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
             "global class InvokerClass {\n"
           + "    /* sfge-disable-stack UnusedMethodRule */\n"
           + "    public boolean callMethod(Superclass obj) {\n"
+            // IMPORTANT: This is where the target method is invoked.
           + "        return obj.getBool();\n"
           + "    }\n"
           + "}"
@@ -333,7 +315,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      * another inner class, then those methods count as used. Specific case: Instance provided as
      * method parameter.
      */
-    @ValueSource(strings = {"MyClass.MyInner1", "MyInner1"})
     @CsvSource({
         "public,  MyClass.MyInner1",
         "protected,  MyClass.MyInner1",
@@ -343,7 +324,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "private,  MyInner1"
     })
     @ParameterizedTest(name = "{displayName}: method scope {0}, param type {1}")
-    @Disabled
     public void innerInstanceMethodCalledFromSiblingViaParameter_expectNoViolation(
             String scope, String paramType) {
         String sourceCode =
@@ -387,7 +367,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "private,  MyInner1,  instance"
     })
     @ParameterizedTest(name = "{displayName}: Method scope {0}; Declaration {1}; Reference {2}")
-    @Disabled
     public void innerInstanceMethodCalledFromSiblingViaOwnProperty_expectNoViolation(
             String scope, String propType, String propRef) {
         String sourceCode =
@@ -397,17 +376,19 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
                         + "            return true;\n"
                         + "        }\n"
                         + "    }\n"
-                        + "    global class MyInner2() {\n"
+                        + "    global class MyInner2 {\n"
                         + String.format("        public %s instance;\n", propType)
                         // Use the engine directive to prevent this method from tripping the rule.
                         + "        /* sfge-disable-stack UnusedMethodRule */\n"
-                        + "        public boolean innerMethod2 {\n"
+                        + "        public boolean innerMethod2() {\n"
                         + String.format("            return %s.innerMethod1();\n", propRef)
                         + "        }\n"
                         + "    }\n"
                         + "}\n";
         assertNoViolations(sourceCode, 1);
     }
+
+    // ====== SECTION 3: EXTERNAL CALLS ======
 
     /**
      * If a class has two inner classes, and one inner class's instance methods are invoked by
@@ -439,12 +420,11 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "private,  static MyInner1, MyClass.outerProp"
     })
     @ParameterizedTest(name = "{displayName}: Method scope {0}; Declaration {1}; Reference {2}")
-    @Disabled
     public void innerInstanceMethodCalledFromSiblingViaOuterProperty_expectNoViolation(
             String scope, String propType, String propRef) {
         String sourceCode =
                 "global class MyClass {\n"
-                        + String.format("    public %s outerProp", propType)
+                        + String.format("    public %s outerProp;\n", propType)
                         + "    global class MyInner1 {\n"
                         + String.format("        %s boolean innerMethod1() {\n", scope)
                         + "            return true;\n"
