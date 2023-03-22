@@ -26,6 +26,8 @@ public class UnusedMethodRule extends AbstractStaticRule {
     GraphTraversalSource g;
     /** A helper object used to track state and caching as the rule executes. */
     RuleStateTracker ruleStateTracker;
+    /** A helper object used to cache queries as the rule executes. */
+    RuleQueryExecutor ruleQueryExecutor;
 
     private UnusedMethodRule() {
         super();
@@ -77,6 +79,7 @@ public class UnusedMethodRule extends AbstractStaticRule {
     private void reset(GraphTraversalSource g) {
         this.g = g;
         this.ruleStateTracker = new RuleStateTracker(g);
+        this.ruleQueryExecutor = new RuleQueryExecutor(g);
     }
 
     /**
@@ -112,11 +115,17 @@ public class UnusedMethodRule extends AbstractStaticRule {
             // Depending on the kind of method, we should instantiate a different call validator.
             BaseMethodCallValidator validator;
             if (candidateVertex.isStatic()) {
-                validator = new StaticMethodCallValidator(candidateVertex, ruleStateTracker);
+                validator =
+                        new StaticMethodCallValidator(
+                                candidateVertex, ruleStateTracker, ruleQueryExecutor);
             } else if (candidateVertex.isConstructor()) {
-                validator = new ConstructorMethodCallValidator(candidateVertex, ruleStateTracker);
+                validator =
+                        new ConstructorMethodCallValidator(
+                                candidateVertex, ruleStateTracker, ruleQueryExecutor);
             } else {
-                validator = new InstanceMethodCallValidator(candidateVertex, ruleStateTracker);
+                validator =
+                        new InstanceMethodCallValidator(
+                                candidateVertex, ruleStateTracker, ruleQueryExecutor);
             }
             // If the validator can't find any usage, then we should add the method as unused.
             if (!validator.usageDetected()) {

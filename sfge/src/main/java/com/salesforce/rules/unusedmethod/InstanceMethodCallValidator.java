@@ -3,8 +3,11 @@ package com.salesforce.rules.unusedmethod;
 import com.salesforce.graph.vertex.MethodCallExpressionVertex;
 import com.salesforce.graph.vertex.MethodVertex;
 import com.salesforce.graph.vertex.UserClassVertex;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Helper class for {@link com.salesforce.rules.UnusedMethodRule}. Used for determining whether an
@@ -12,8 +15,16 @@ import java.util.Optional;
  */
 public class InstanceMethodCallValidator extends BaseMethodCallValidator {
     public InstanceMethodCallValidator(
-            MethodVertex targetMethod, RuleStateTracker ruleStateTracker) {
-        super(targetMethod, ruleStateTracker);
+            MethodVertex targetMethod,
+            RuleStateTracker ruleStateTracker,
+            RuleQueryExecutor ruleQueryExecutor) {
+        super(targetMethod, ruleStateTracker, ruleQueryExecutor);
+    }
+
+
+    @Override
+    public boolean usageDetectedNew() {
+        return false;
     }
 
     /**
@@ -136,7 +147,7 @@ public class InstanceMethodCallValidator extends BaseMethodCallValidator {
         protected boolean detectsUsage(String definingType, boolean seekThis, boolean seekSuper) {
             // Get all method call expressions occurring in the target class.
             List<MethodCallExpressionVertex> potentialCalls =
-                    ruleStateTracker.getMethodCallExpressionsByDefiningType(definingType);
+                    ruleQueryExecutor.getMethodCallsOccurringIn(definingType);
             for (MethodCallExpressionVertex potentialCall : potentialCalls) {
                 // An empty reference is an implicit `this` reference.
                 boolean isThis =
@@ -165,6 +176,22 @@ public class InstanceMethodCallValidator extends BaseMethodCallValidator {
     private class ExternalUsageDetector extends UsageDetector {
         @Override
         protected boolean detectsUsage(String definingType, boolean seekThis, boolean seekSuper) {
+            // All external calls are, in a sense, `this` calls. So if those aren't allowed, we
+            // don't even need to do anything.
+            if (!seekThis) {
+                return false;
+            }
+            /*
+            1. get all invocations of `something.methodName()`.
+                - Try to pre-emptively filter out files?
+            2. For each possible invocation...
+                a. If it's an empty reference, not a match.
+                b. If params are wrong, not a match.
+                c. If the object is the wrong thing, not a match.
+                d. Else, it's a match.
+             */
+
+
             // TODO: IMPLEMENT THIS METHOD
             return false;
         }

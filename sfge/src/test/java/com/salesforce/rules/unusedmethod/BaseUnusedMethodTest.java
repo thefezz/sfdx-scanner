@@ -210,7 +210,7 @@ public class BaseUnusedMethodTest {
       + "    public static %s staticMethod() {\n"
         // UnusedMethodRule won't care that the method returns null.
       + "        return null;\n"
-      + "    }"
+      + "    }\n"
         // Add an instance method of configurable return type, annotated to not trip the rule.
       + "    /* sfge-disable-stack UnusedMethodRule */\n"
       + "    public %s instanceMethod() {\n"
@@ -220,7 +220,7 @@ public class BaseUnusedMethodTest {
         // Declare a method annotated to not trip the rule, and with a parameter
         // of configurable type.
       + "    /* sfge-disable-stack UnusedMethodRule */\n"
-      + "    public boolean invokeMethod(%s param)\n"
+      + "    public boolean invokeMethod(%s param) {\n"
         // Declare a variable of configurable type. UnusedMethodRule won't care
         // that the variable is uninitialized.
       + "        %s var;\n"
@@ -348,7 +348,7 @@ public class BaseUnusedMethodTest {
      * @param sourceCodes - An array of source files
      */
     protected void assertNoViolations(String[] sourceCodes, int eligibleMethodCount) {
-        TestUtil.buildGraph(g, sourceCodes);
+        TestUtil.buildGraph(g, sourceCodes, true);
 
         UnusedMethodRule rule = UnusedMethodRule.getInstance();
         List<Violation> violations = rule.run(g);

@@ -14,18 +14,26 @@ import java.util.Optional;
 public abstract class BaseMethodCallValidator {
     /** The method that we want to verify is being invoked. */
     protected final MethodVertex targetMethod;
-    /** A helper object used to track state and cache data as the rule executes. */
+    /** A helper object used to track state as the rule executes. */
     protected final RuleStateTracker ruleStateTracker;
+    /** A helper object used to cache data as the rule executes. */
+    protected final RuleQueryExecutor ruleQueryExecutor;
 
     /**
      * @param targetMethod - The method for which we're seeking invocations
      * @param ruleStateTracker - Helper object provided by the rule
+     * @param ruleQueryExecutor - Helper object provided by the rule
      */
     protected BaseMethodCallValidator(
-            MethodVertex targetMethod, RuleStateTracker ruleStateTracker) {
+            MethodVertex targetMethod,
+            RuleStateTracker ruleStateTracker,
+            RuleQueryExecutor ruleQueryExecutor) {
         this.targetMethod = targetMethod;
         this.ruleStateTracker = ruleStateTracker;
+        this.ruleQueryExecutor = ruleQueryExecutor;
     }
+
+    public abstract boolean usageDetectedNew();
 
     /**
      * @return - True if the codebase contains something that could plausibly be an invocation of

@@ -10,8 +10,10 @@ import java.util.List;
 public class ConstructorMethodCallValidator extends BaseMethodCallValidator {
 
     public ConstructorMethodCallValidator(
-            MethodVertex targetMethod, RuleStateTracker ruleStateTracker) {
-        super(targetMethod, ruleStateTracker);
+            MethodVertex targetMethod,
+            RuleStateTracker ruleStateTracker,
+            RuleQueryExecutor ruleQueryExecutor) {
+        super(targetMethod, ruleStateTracker, ruleQueryExecutor);
     }
 
     /**
@@ -30,8 +32,7 @@ public class ConstructorMethodCallValidator extends BaseMethodCallValidator {
     protected boolean internalUsageDetected() {
         // First, check for usage in the class where the target method is defined.
         List<ThisMethodCallExpressionVertex> ownClassPotentialCalls =
-                ruleStateTracker.getThisMethodCallExpressionsByDefiningType(
-                        targetMethod.getDefiningType());
+                ruleQueryExecutor.getThisMethodCallsOccurringIn(targetMethod.getDefiningType());
 
         // For constructors on the same class, we're just looking for whether the parameters are
         // valid.
@@ -50,7 +51,7 @@ public class ConstructorMethodCallValidator extends BaseMethodCallValidator {
         List<String> subclassNames = ruleStateTracker.getSubclasses(targetMethod.getDefiningType());
         for (String subclassName : subclassNames) {
             List<SuperMethodCallExpressionVertex> subclassPotentialCalls =
-                    ruleStateTracker.getSuperMethodCallExpressionsByDefiningType(subclassName);
+                    ruleQueryExecutor.getSuperMethodCallsOccurringIn(subclassName);
             for (SuperMethodCallExpressionVertex potentialCall : subclassPotentialCalls) {
                 if (parametersAreValid(potentialCall)) {
                     return true;

@@ -9,8 +9,16 @@ import java.util.Optional;
 
 public class StaticMethodCallValidator extends BaseMethodCallValidator {
 
-    public StaticMethodCallValidator(MethodVertex targetMethod, RuleStateTracker ruleStateTracker) {
-        super(targetMethod, ruleStateTracker);
+    public StaticMethodCallValidator(
+            MethodVertex targetMethod,
+            RuleStateTracker ruleStateTracker,
+            RuleQueryExecutor ruleQueryExecutor) {
+        super(targetMethod, ruleStateTracker, ruleQueryExecutor);
+    }
+
+    @Override
+    public boolean usageDetectedNew() {
+        return internalUsageDetected() || externalUsageDetected();
     }
 
     /**
@@ -129,7 +137,7 @@ public class StaticMethodCallValidator extends BaseMethodCallValidator {
         private boolean usageInClass(String definingType) {
             // Get all method call expressions in the target class.
             List<MethodCallExpressionVertex> potentialCalls =
-                    ruleStateTracker.getMethodCallExpressionsByDefiningType(definingType);
+                    ruleQueryExecutor.getMethodCallsOccurringIn(definingType);
             for (MethodCallExpressionVertex potentialCall : potentialCalls) {
                 // If the call is anything other than an empty reference, it's not an internal call.
                 if (!potentialCall.isEmptyReference()) {
