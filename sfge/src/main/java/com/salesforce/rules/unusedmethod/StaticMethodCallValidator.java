@@ -1,9 +1,8 @@
 package com.salesforce.rules.unusedmethod;
 
-import com.salesforce.graph.vertex.BaseSFVertex;
-import com.salesforce.graph.vertex.MethodCallExpressionVertex;
-import com.salesforce.graph.vertex.MethodVertex;
-import com.salesforce.graph.vertex.UserClassVertex;
+import com.salesforce.exception.UnexpectedException;
+import com.salesforce.graph.vertex.*;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -104,10 +103,10 @@ public class StaticMethodCallValidator extends BaseMethodCallValidator {
             List<UserClassVertex> innerClasses = ruleStateTracker.getInnerClasses(definingType);
             for (UserClassVertex innerClass : innerClasses) {
                 // If this inner class has/inherits a method with the same signature as the target
-                // method,
-                // then internal-style calls will be to that method instead of the target method.
-                if (ruleStateTracker.classInheritsMatchingMethod(
-                        innerClass.getDefiningType(), targetMethod.getSignature())) {
+                // method, then internal-style calls will be to that method instead of the target
+                // method.
+                if (ruleStateTracker.classHasMatchingMethod(
+                        innerClass.getDefiningType(), targetMethod.getSignature(), true)) {
                     continue;
                 }
                 // Otherwise, check the inner class for calls.
@@ -170,7 +169,7 @@ public class StaticMethodCallValidator extends BaseMethodCallValidator {
                 // If the reference appears to be for something other than the host class,
                 // then it's not a match.
                 Optional<BaseSFVertex> declaration =
-                        ruleStateTracker.getDeclarationOfReferencedValue(potentialCall);
+                        ruleStateTracker.doTheThing(potentialCall);
                 if (!declaration.isPresent()) {
                     return true;
                 }

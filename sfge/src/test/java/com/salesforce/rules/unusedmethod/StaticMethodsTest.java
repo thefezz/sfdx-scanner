@@ -342,7 +342,7 @@ public class StaticMethodsTest extends BaseUnusedMethodTest {
             strings = {
                 "instanceProp",
                 "staticProp",
-                // "inheritedProp", TODO: FIX AND ENABLE THIS TEST
+                "inheritedProp",
                 "methodParam",
                 "variable",
                 "InnerClass"

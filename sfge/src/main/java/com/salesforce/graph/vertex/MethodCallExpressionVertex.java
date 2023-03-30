@@ -88,21 +88,12 @@ public class MethodCallExpressionVertex extends InvocableWithParametersVertex
         }
     }
 
-    /**
-     * If this method call occurs in the context of a field declaration, return that declaration.
-     *
-     * @return - Optional containing the field declaration, if it exists.
-     */
-    public Optional<FieldDeclarationVertex> getFieldDeclaration() {
-        return getFirstParentOfType(NodeType.FIELD_DECLARATION);
-    }
-
     public Optional<ClassRefExpressionVertex> getClassRefExpression() {
         AbstractReferenceExpressionVertex abstractReferenceExpression = referenceExpression.get();
         if (abstractReferenceExpression instanceof ReferenceExpressionVertex) {
             ReferenceExpressionVertex referenceExpression =
                     (ReferenceExpressionVertex) abstractReferenceExpression;
-            return referenceExpression.gtClassRefExpression();
+            return referenceExpression.getClassRefExpression();
         }
         return Optional.empty();
     }
@@ -286,6 +277,20 @@ public class MethodCallExpressionVertex extends InvocableWithParametersVertex
         if (referenceExpression.get() instanceof ReferenceExpressionVertex) {
             return ((ReferenceExpressionVertex) referenceExpression.get())
                     .getThisVariableExpression()
+                    .isPresent();
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @return true if the method is qualified by a {@code super} expression. E.g., Returns true for
+     *     {@code super.someMethod()}.
+     */
+    public boolean isSuperReference() {
+        if (referenceExpression.get() instanceof ReferenceExpressionVertex) {
+            return ((ReferenceExpressionVertex) referenceExpression.get())
+                    .getSuperVariableExpression()
                     .isPresent();
         } else {
             return false;

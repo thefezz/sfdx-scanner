@@ -2,7 +2,6 @@ package com.salesforce.rules.unusedmethod;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -21,13 +20,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      *
      * @param visibility - The target method's visibility scope.
      */
-    // TODO: ENABLE MORE TESTS AS WE ADD MORE FUNCTIONALITY
-    @ValueSource(
-            strings = {
-                // "public",
-                // "protected",
-                "private"
-            })
+    @ValueSource(strings = {"public", "protected", "private"})
     @ParameterizedTest(name = "{displayName}: {0} instance")
     public void instanceWithoutInvocation_expectViolation(String visibility) {
         String sourceCode = String.format(SIMPLE_UNUSED_OUTER_METHOD_SOURCE, visibility);
@@ -40,13 +33,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      *
      * @param visibility - The target method's visibility scope.
      */
-    // TODO: ENABLE MORE TESTS AS WE ADD MORE FUNCTIONALITY
-    @ValueSource(
-            strings = {
-                // "public",
-                // "protected",
-                "private"
-            })
+    @ValueSource(strings = {"public", "protected", "private"})
     @ParameterizedTest(name = "{displayName}: {0} instance")
     public void innerInstanceWithoutInvocation_expectViolation(String visibility) {
         // spotless:off
@@ -73,11 +60,11 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      *     {@code this.method1()}.
      */
     @CsvSource({
-        // "public, method1()",
-        // "protected, method1()",
+        "public, method1()",
+        "protected, method1()",
         "private, method1()",
-        // "public, this.method1()",
-        // "protected, this.method1()",
+        "public, this.method1()",
+        "protected, this.method1()",
         "private, this.method1()"
     })
     @ParameterizedTest(name = "{displayName}: {0} instance method invoked as {1}")
@@ -120,7 +107,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "protected, grandchild, super.methodOnParent()",
     })
     @ParameterizedTest(name = "{displayName}: Called by {0} in {1} as {2}")
-    @Disabled
     public void instanceInvokedBySubclass_expectNoViolation(
             String testedVisibility, String callerClass, String invocation) {
         // Either the child or grandchild will invoke the parent method. The other will return a
@@ -147,11 +133,10 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
     @ValueSource(
             strings = {
                 // Implicit vs explicit 'this'
-                "this.testedMethod()",
-                "testedMethod()"
+                "this.getBool()",
+                "getBool()"
             })
     @ParameterizedTest(name = "{displayName}: Invoked via {0}")
-    @Disabled
     public void instanceNotInvokedByOverridingSubclass_expectViolation(String invocation) {
         // Fill in the source code template.
         String[] sourceCodes =
@@ -189,7 +174,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "abstract, getBool()",
     })
     @ParameterizedTest(name = "{displayName}: superclass is {0}, method invoked as {1}")
-    @Disabled
     public void instanceInvokedByOriginatingSuperclass_expectNoViolation(
             String superclassModifier, String invocation) {
         String[] sourceCodes =
@@ -261,7 +245,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "GrandchildClass, new GrandchildClass()",
     })
     @ParameterizedTest(name = "{displayName}: Called on {1}, instance of {0}")
-    @Disabled
     public void instanceInvokedOnInstantiatedObject_expectNoViolation(
             String hostClass, String instantiation) {
         String[] sourceCodes =
@@ -272,7 +255,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
                     String.format(SUBCLASS_NON_OVERRIDDEN_SOURCES[1], "public", "true"),
                     String.format(SUBCLASS_NON_OVERRIDDEN_SOURCES[2], "public", "true"),
                     // Add a version of the invoker class that calls the method as specified.
-                    configureInvoker(hostClass, instantiation + ".getBool()")
+                    configureInvoker(hostClass, instantiation + ".methodOnParent()")
                 };
         assertNoViolations(sourceCodes, 1);
     }
@@ -299,7 +282,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
                 "new ChildClass()"
             })
     @ParameterizedTest(name = "{displayName}: Child method invoked via {0}")
-    @Disabled
     public void instanceNotInvokedOnInstantiatedOverrider_expectViolation(String instantiation) {
         String[] sourceCodes =
                 new String[] {
@@ -319,7 +301,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         assertViolations(
                 sourceCodes,
                 v -> {
-                    assertEquals("testedMethod", v.getSourceVertexName());
+                    assertEquals("getBool", v.getSourceVertexName());
                     assertEquals("ParentClass", v.getSourceDefiningType());
                 });
     }
@@ -350,8 +332,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
                 "var"
             })
     @ParameterizedTest(name = "{displayName}: Invocation via {0}")
-    @Disabled
-    public void instanceInvokedOnInstantiatedOriginator_expectNoViolation(String instantiation) {
+    public void instanceInvokedOnInstantiatedParentClass_expectNoViolation(String instantiation) {
         String[] sourceCodes =
                 new String[] {
                     // The parent should be virtual, its version of the method should be excluded
@@ -370,6 +351,49 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         assertNoViolations(sourceCodes, 1);
     }
 
+    @ValueSource(
+            strings = {
+                // CRUCIAL NOTE: Interfaces cannot be instantiated directly, so there's no
+                // constructor case.
+                "InvokerClass.staticProp",
+                "staticProp",
+                "InvokerClass.staticMethod()",
+                "staticMethod()",
+                "this.instanceProp",
+                "instanceProp",
+                "this.instanceMethod()",
+                "instanceMethod()",
+                "param",
+                "var"
+            })
+    @ParameterizedTest(name = "{displayName}: Invocation via {0}")
+    public void instanceInvokedOnInstantiatedParentInterface_expectNoViolation(
+            String instantiation) {
+        // spotless:off
+        String[] sourceCodes = new String[]{
+            // Add an interface that exposes a method.
+            "global interface MyInterface {\n"
+          + "    boolean getBool();\n"
+          + "}",
+            // Add a parent class that implements the method.
+            "global virtual class ParentClass implements MyInterface {\n"
+          + "    public virtual boolean getBool() {\n"
+          + "        return true;\n"
+          + "    }\n"
+          + "}",
+            // Add a child class that implements the method too.
+            "global class ChildClass extends ParentClass {\n"
+          + "    public override boolean getBool() {\n"
+          + "        return false;\n"
+          + "    }\n"
+          + "}",
+            // Add an invoker configured to use the interface and call the method.
+            configureInvoker("MyInterface", instantiation + ".getBool()")
+        };
+        // spotless:on
+        assertNoViolations(sourceCodes, 2);
+    }
+
     /**
      * Tests for cases where an instance method is called at the end of a long chain of middleman
      * calls and properties.
@@ -379,24 +403,31 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
     @ValueSource(
             strings = {
                 // property -> property -> end property
-                "middlemanProp.middlemanProp.endProp",
+                "this.instanceProp.middlemanProp.endProp",
+                "instanceProp.middlemanProp.endProp",
                 // property -> property -> end method
-                "middlemanProp.middlemanProp.endMethod()",
+                "this.instanceProp.middlemanProp.endMethod()",
+                "instanceProp.middlemanProp.endMethod()",
                 // property -> method -> end property
-                "middlemanProp.middlemanMethod().endProp",
+                "this.instanceProp.middlemanMethod().endProp",
+                "instanceProp.middlemanMethod().endProp",
                 // property -> method -> end method
-                "middlemanProp.middlemanMethod().endMethod()",
+                "this.instanceProp.middlemanMethod().endMethod()",
+                "instanceProp.middlemanMethod().endMethod()",
                 // method -> property -> end property
-                "middlemanMethod().middlemanProp.endProp",
+                "this.instanceMethod().middlemanProp.endProp",
+                "instanceMethod().middlemanProp.endProp",
                 // method -> property -> end method
-                "middlemanMethod().middlemanProp.endMethod()",
+                "this.instanceMethod().middlemanProp.endMethod()",
+                "instanceMethod().middlemanProp.endMethod()",
                 // method -> method -> end property
-                "middlemanMethod().middlemanMethod().endProp",
+                "this.instanceMethod().middlemanMethod().endProp",
+                "instanceMethod().middlemanMethod().endProp",
                 // method -> method -> end method
-                "middlemanMethod().middlemanMethod().endMethod()"
+                "this.instanceMethod().middlemanMethod().endMethod()",
+                "instanceMethod().middlemanMethod().endMethod()"
             })
     @ParameterizedTest(name = "{displayName}: middleman chain {0}")
-    @Disabled
     public void instanceInvokedViaMiddleman_expectNoViolation(String middlemanChain) {
         // spotless:off
         String[] sourceCodes = new String[]{
@@ -418,7 +449,7 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
           + "    }\n"
           + "}",
             // Create an invoker that uses the middleman as requested.
-            configureInvoker("MiddlemanClass", "this.instanceProp." + middlemanChain + ".unusedMethod()")
+            configureInvoker("MiddlemanClass", middlemanChain + ".unusedMethod()")
         };
         // spotless:on
         assertNoViolations(sourceCodes, 1);
@@ -438,7 +469,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "private,  MyInner1"
     })
     @ParameterizedTest(name = "{displayName}: method scope {0}, param type {1}")
-    @Disabled
     public void innerInstanceMethodCalledFromSiblingViaParameter_expectNoViolation(
             String scope, String paramType) {
         String sourceCode =
@@ -482,7 +512,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "private,  MyInner1,  instance"
     })
     @ParameterizedTest(name = "{displayName}: Method scope {0}; Declaration {1}; Reference {2}")
-    @Disabled
     public void innerInstanceMethodCalledFromSiblingViaOwnProperty_expectNoViolation(
             String scope, String propType, String propRef) {
         String sourceCode =
@@ -534,7 +563,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
         "private,  static MyInner1, MyClass.outerProp"
     })
     @ParameterizedTest(name = "{displayName}: Method scope {0}; Declaration {1}; Reference {2}")
-    @Disabled
     public void innerInstanceMethodCalledFromSiblingViaOuterProperty_expectNoViolation(
             String scope, String propType, String propRef) {
         String sourceCode =
@@ -563,7 +591,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      * count as a usage for {@code prop}'s method, not {@code this}'s.
      */
     @Test
-    @Disabled
     public void externalReferenceThisCollision_expectViolation() {
         // spotless:off
         String[] sourceCodes = new String[] {
@@ -599,7 +626,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
      * outer class.
      */
     @Test
-    @Disabled
     public void externalReferenceClassNameCollision_expectViolation() {
         // spotless:off
         String[] sourceCodes = new String[]{
@@ -612,8 +638,6 @@ public class InstanceMethodsTest extends BaseUnusedMethodTest {
           + "    }\n"
             // Declare an inner class to cause collisions.
           + "    public class CollidingClass {\n"
-            // Declare a method. Annotate it to not trip the rule.
-          + "        /* sfge-disable-stack UnusedMethodRule */\n"
           + "        public boolean getBoolean() {\n"
           + "            return true;\n"
           + "        }\n"

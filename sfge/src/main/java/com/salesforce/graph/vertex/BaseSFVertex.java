@@ -344,6 +344,15 @@ public abstract class BaseSFVertex implements CollectibleObject, SFVertex {
         return parentClass.get();
     }
 
+    /**
+     * If this method call occurs in the context of a field declaration, return that declaration.
+     *
+     * @return - Optional containing the field declaration, if it exists.
+     */
+    public Optional<FieldDeclarationVertex> getParentFieldDeclaration() {
+        return getFirstParentOfType(NodeType.FIELD_DECLARATION);
+    }
+
     /** Finds all Annotation vertices that are present on the previous line in the code */
     public List<AnnotationVertex> getAnnotations() {
         return previousLineAnnotations.get();

@@ -210,7 +210,7 @@ public class BaseUnusedMethodTest {
       + "    public static %s staticMethod() {\n"
         // UnusedMethodRule won't care that the method returns null.
       + "        return null;\n"
-      + "    }"
+      + "    }\n"
         // Add an instance method of configurable return type, annotated to not trip the rule.
       + "    /* sfge-disable-stack UnusedMethodRule */\n"
       + "    public %s instanceMethod() {\n"
@@ -320,7 +320,7 @@ public class BaseUnusedMethodTest {
      */
     protected void assertViolations(
             String[] sourceCodes, Consumer<Violation.RuleViolation>... assertions) {
-        TestUtil.buildGraph(g, sourceCodes);
+        TestUtil.buildGraph(g, sourceCodes, true);
 
         AbstractStaticRule rule = UnusedMethodRule.getInstance();
         List<Violation> violations = rule.run(g);
@@ -348,7 +348,7 @@ public class BaseUnusedMethodTest {
      * @param sourceCodes - An array of source files
      */
     protected void assertNoViolations(String[] sourceCodes, int eligibleMethodCount) {
-        TestUtil.buildGraph(g, sourceCodes);
+        TestUtil.buildGraph(g, sourceCodes, true);
 
         UnusedMethodRule rule = UnusedMethodRule.getInstance();
         List<Violation> violations = rule.run(g);
@@ -363,7 +363,7 @@ public class BaseUnusedMethodTest {
     }
 
     protected void assertNoAnalysis(String[] sourceCodes) {
-        TestUtil.buildGraph(g, sourceCodes);
+        TestUtil.buildGraph(g, sourceCodes, true);
         UnusedMethodRule rule = UnusedMethodRule.getInstance();
         List<Violation> violations = rule.run(g);
 

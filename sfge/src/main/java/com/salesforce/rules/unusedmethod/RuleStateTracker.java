@@ -62,6 +62,10 @@ public class RuleStateTracker {
      */
     private final Map<String, List<SuperMethodCallExpressionVertex>>
             superMethodCallExpressionsByDefiningType;
+    // TODO: JDOC
+    private final Map<String, InheritanceTree> inheritanceTreesByDefiningType;
+    // TODO: JDOC
+    private final Map<String, List<String>> superclassListsByDefiningType;
     /**
      * A map used to cache every subclass of a given class. Minimizing redundant queries is a very
      * high priority for this rule.
@@ -81,6 +85,8 @@ public class RuleStateTracker {
         this.methodCallExpressionsByDefiningType = CollectionUtil.newTreeMap();
         this.thisMethodCallExpressionsByDefiningType = CollectionUtil.newTreeMap();
         this.superMethodCallExpressionsByDefiningType = CollectionUtil.newTreeMap();
+        this.inheritanceTreesByDefiningType = CollectionUtil.newTreeMap();
+        this.superclassListsByDefiningType = CollectionUtil.newTreeMap();
         this.subclassesByDefiningType = CollectionUtil.newTreeMap();
         this.innerClassesByDefiningType = CollectionUtil.newTreeMap();
     }
@@ -106,15 +112,17 @@ public class RuleStateTracker {
     }
 
     /**
-     * Get every {@link MethodCallExpressionVertex} occurring in the class represented by {@code
-     * definingType}.
-     *
-     * @param definingType
-     * @return
+     * Get every {@link MethodCallExpressionVertex} occurring in the classes represented by {@code
+     * definingTypes}.
      */
-    List<MethodCallExpressionVertex> getMethodCallExpressionsByDefiningType(String definingType) {
-        populateMethodCallCachesForDefiningType(definingType);
-        return this.methodCallExpressionsByDefiningType.get(definingType);
+    List<MethodCallExpressionVertex> getMethodCallExpressionsByDefiningType(
+            String... definingTypes) {
+        populateMethodCallCachesForDefiningType(definingTypes);
+        List<MethodCallExpressionVertex> results = new ArrayList<>();
+        for (String definingType : definingTypes) {
+            results.addAll(this.methodCallExpressionsByDefiningType.get(definingType));
+        }
+        return results;
     }
 
     /**
@@ -144,48 +152,164 @@ public class RuleStateTracker {
     }
 
     /**
-     * Populate the various method call caches for the class represented by {@code definingType}. Do
-     * all of them in the same method because it's exceedingly likely that we'll need all of them at
-     * one point or another.
-     *
-     * @param definingType
+     * Populate the various method call caches for the classes represented by {@code definingTypes}.
+     * Do all of them in the same method because it's exceedingly likely that we'll need all of them
+     * at one point or another.
      */
-    private void populateMethodCallCachesForDefiningType(String definingType) {
+    private void populateMethodCallCachesForDefiningType(String... definingTypes) {
+        // Determine which defining types don't already have something cached.
+        List<String> uncachedTypes =
+                Arrays.stream(definingTypes)
+                        .filter(t -> !cachedDefiningTypes.contains(t))
+                        .collect(Collectors.toList());
+        // Populate the caches for those types with empty lists.
+        for (String uncachedType : uncachedTypes) {
+            methodCallExpressionsByDefiningType.put(uncachedType, new ArrayList<>());
+            thisMethodCallExpressionsByDefiningType.put(uncachedType, new ArrayList<>());
+            superMethodCallExpressionsByDefiningType.put(uncachedType, new ArrayList<>());
+        }
+
         // If we've already populated the caches for this defining type, there's nothing to do.
-        if (this.cachedDefiningTypes.contains(definingType)) {
+        if (uncachedTypes.isEmpty()) {
             return;
         }
         // Otherwise, we need to do a query.
-        // Any node with one of these labels is a method call.
-        List<String> targetLabels =
-                Arrays.asList(
-                        NodeType.METHOD_CALL_EXPRESSION,
-                        NodeType.THIS_METHOD_CALL_EXPRESSION,
-                        NodeType.SUPER_METHOD_CALL_EXPRESSION);
         List<InvocableWithParametersVertex> methodCalls =
                 SFVertexFactory.loadVertices(
-                        g, g.V().where(H.has(targetLabels, Schema.DEFINING_TYPE, definingType)));
+                        g,
+                        g.V()
+                                .where(
+                                        __.or(
+                                                H.hasWithin(
+                                                        NodeType.METHOD_CALL_EXPRESSION,
+                                                        Schema.DEFINING_TYPE,
+                                                        definingTypes),
+                                                H.hasWithin(
+                                                        NodeType.THIS_METHOD_CALL_EXPRESSION,
+                                                        Schema.DEFINING_TYPE,
+                                                        definingTypes),
+                                                H.hasWithin(
+                                                        NodeType.SUPER_METHOD_CALL_EXPRESSION,
+                                                        Schema.DEFINING_TYPE,
+                                                        definingTypes))));
+
         // Sort the results by type and cache them appropriately.
-        List<MethodCallExpressionVertex> methodCallExpressions = new ArrayList<>();
-        List<ThisMethodCallExpressionVertex> thisMethodCallExpressions = new ArrayList<>();
-        List<SuperMethodCallExpressionVertex> superMethodCallExpressions = new ArrayList<>();
         for (InvocableWithParametersVertex invocable : methodCalls) {
+            String key = invocable.getDefiningType();
             if (invocable instanceof MethodCallExpressionVertex) {
-                methodCallExpressions.add((MethodCallExpressionVertex) invocable);
+                methodCallExpressionsByDefiningType
+                        .get(key)
+                        .add((MethodCallExpressionVertex) invocable);
             } else if (invocable instanceof ThisMethodCallExpressionVertex) {
-                thisMethodCallExpressions.add((ThisMethodCallExpressionVertex) invocable);
+                thisMethodCallExpressionsByDefiningType
+                        .get(key)
+                        .add((ThisMethodCallExpressionVertex) invocable);
             } else if (invocable instanceof SuperMethodCallExpressionVertex) {
-                superMethodCallExpressions.add((SuperMethodCallExpressionVertex) invocable);
+                superMethodCallExpressionsByDefiningType
+                        .get(key)
+                        .add((SuperMethodCallExpressionVertex) invocable);
             } else {
                 throw new TodoException(
                         "Unexpected InvocableWithParametersVertex implementation "
                                 + invocable.getClass());
             }
         }
-        methodCallExpressionsByDefiningType.put(definingType, methodCallExpressions);
-        thisMethodCallExpressionsByDefiningType.put(definingType, thisMethodCallExpressions);
-        superMethodCallExpressionsByDefiningType.put(definingType, superMethodCallExpressions);
-        cachedDefiningTypes.add(definingType);
+        cachedDefiningTypes.addAll(uncachedTypes);
+    }
+
+    // TODO:JDOC
+    List<MethodCallExpressionVertex> getMethodCallExpressionsByMethodName(String methodName) {
+        return SFVertexFactory.loadVertices(
+                g,
+                g.V()
+                        .where(
+                                H.has(
+                                        NodeType.METHOD_CALL_EXPRESSION,
+                                        Schema.METHOD_NAME,
+                                        methodName)));
+    }
+
+    // TODO: JDOC
+    UserClassVertex getClassByDefiningType(String definingType) {
+        return SFVertexFactory.loadSingleOrNull(
+                g,
+                g.V().where(H.hasWithin(NodeType.USER_CLASS, Schema.DEFINING_TYPE, definingType)));
+    }
+
+    // TODO: JDOC AND COMMENT
+    List<String> getSuperclassList(String definingType) {
+        // If we don't already have a cached chain, we'll need to create one.
+        if (!superclassListsByDefiningType.containsKey(definingType)) {
+            List<UserClassVertex> superclasses =
+                    SFVertexFactory.loadVertices(
+                            g,
+                            g.V()
+                                    .where(
+                                            H.has(
+                                                    NodeType.USER_CLASS,
+                                                    Schema.DEFINING_TYPE,
+                                                    definingType))
+                                    .repeat(__.out(Schema.EXTENSION_OF))
+                                    .emit());
+            superclassListsByDefiningType.put(
+                    definingType,
+                    superclasses.stream()
+                            .map(UserClassVertex::getDefiningType)
+                            .collect(Collectors.toList()));
+        }
+        return superclassListsByDefiningType.get(definingType);
+    }
+
+    // TODO: JDOC
+    InheritanceTree getInheritanceTree(String definingType) {
+        // If we don't already have a cached tree, we'll need to create one.
+        if (!inheritanceTreesByDefiningType.containsKey(definingType)) {
+            // Starting with the desired type...
+            List<Map<String, Object>> rawResults =
+                    g.V()
+                            .where(H.has(NodeType.USER_CLASS, Schema.DEFINING_TYPE, definingType))
+                            .union(
+                                    // ...for itself...
+                                    __.identity(),
+                                    // ...and anything that inherits from it...
+                                    __.repeat(__.out(Schema.EXTENDED_BY)).emit())
+                            // ...Create a map containing its defining type and those of its
+                            // subclasses.
+                            .project(Schema.DEFINING_TYPE, Schema.EXTENDED_BY)
+                            .by(Schema.DEFINING_TYPE)
+                            .by(__.out(Schema.EXTENDED_BY).values(Schema.DEFINING_TYPE).fold())
+                            // And return the whole thing as a list.
+                            .toList();
+
+            // To properly assemble the tree, we'll want to map new nodes to their expected
+            // children.
+            Map<String, Set<String>> newExtensions = CollectionUtil.newTreeMap();
+            for (Map<String, Object> rawResult : rawResults) {
+                String type = (String) rawResult.get(Schema.DEFINING_TYPE);
+                // If there's not already a mapped tree for this type, we'll need to create one.
+                if (!inheritanceTreesByDefiningType.containsKey(type)) {
+                    InheritanceTree newTree = new InheritanceTree(type);
+                    inheritanceTreesByDefiningType.put(type, newTree);
+                    Set<String> expectedChildren = CollectionUtil.newTreeSet();
+                    assert rawResult.get(Schema.EXTENDED_BY) instanceof List;
+                    List<?> rawChildren = (List<?>) rawResult.get(Schema.EXTENDED_BY);
+                    for (Object o : rawChildren) {
+                        assert o instanceof String;
+                        expectedChildren.add((String) o);
+                    }
+                    newExtensions.put(type, expectedChildren);
+                }
+            }
+            // Properly add all new nodes into the tree.
+            for (String newNodeType : newExtensions.keySet()) {
+                InheritanceTree newNode = inheritanceTreesByDefiningType.get(newNodeType);
+                for (String expectedChild : newExtensions.get(newNodeType)) {
+                    newNode.addSubclass(inheritanceTreesByDefiningType.get(expectedChild));
+                }
+            }
+        }
+        // Return the tree from the cache.
+        return inheritanceTreesByDefiningType.get(definingType);
     }
 
     /** Get all immediate subclasses of the provided classes. */
@@ -229,15 +353,25 @@ public class RuleStateTracker {
         return this.innerClassesByDefiningType.get(definingType);
     }
 
+    // TODO: JDOC
+    Optional<MethodVertex> getMethodWithSignature(
+            String definingType, String signature, boolean includeInheritedMethods) {
+        return MethodUtil.getMethodWithSignature(
+                g, definingType, signature, includeInheritedMethods);
+    }
+
     /**
      * Indicates whether the specified class has/inherits a method with the specified signature
      *
      * @param definingType - A class name
      * @param signature - The signature of a method
+     * @param includeInheritedMethods - Allows check to cover inherited methods in addition to local
+     *     ones
      * @return True if class has method, else false
      */
-    boolean classInheritsMatchingMethod(String definingType, String signature) {
-        return MethodUtil.getMethodWithSignature(g, definingType, signature, true).isPresent();
+    boolean classHasMatchingMethod(
+            String definingType, String signature, boolean includeInheritedMethods) {
+        return getMethodWithSignature(definingType, signature, includeInheritedMethods).isPresent();
     }
 
     /**
@@ -321,6 +455,11 @@ public class RuleStateTracker {
         return results;
     }
 
+    // TODO: JDOC
+    Optional<BaseSFVertex> doTheThing(MethodCallExpressionVertex methodCall) {
+        return TypeResolutionUtil.resolveToVertex(g, methodCall);
+    }
+
     /**
      * Returns the {@link BaseSFVertex} where the value referenced in the specified method call is
      * declared. <br>
@@ -333,12 +472,16 @@ public class RuleStateTracker {
         // declaration, or both. Determine which.
         Optional<MethodVertex> parentMethodOptional = methodCall.getParentMethod();
         Optional<FieldDeclarationVertex> parentFieldDeclarationOptional =
-                methodCall.getFieldDeclaration();
+                methodCall.getParentFieldDeclaration();
         // Theoretically one or both of those optionals should be present. If not, throw an
         // exception.
         if (!parentMethodOptional.isPresent() && !parentFieldDeclarationOptional.isPresent()) {
             throw new UnexpectedException(
                     "Cannot determine context for method call " + methodCall.toMinimalString());
+        }
+        if (referenceNameList.isEmpty()) {
+            System.out.println("Actual result: empty b/c no refs, own def type " + methodCall.getDefiningType());
+            return Optional.empty();
         }
         // Step 3: If we're in a method, check for variables and parameters.
         if (parentMethodOptional.isPresent()) {
@@ -352,6 +495,7 @@ public class RuleStateTracker {
                 //       So `SomeClass someClass = SomeClass.getInstance();` will incorrectly
                 //       pass this if-check.
                 if (declaredVariable.getName().equalsIgnoreCase(referenceNameList.get(0))) {
+                    System.out.println("Actual result: variable " + declaredVariable.getName() + " of type " + declaredVariable.getCanonicalType());
                     return Optional.of(declaredVariable);
                 }
             }
@@ -361,6 +505,7 @@ public class RuleStateTracker {
             List<ParameterVertex> params = parentMethod.getParameters();
             for (ParameterVertex param : params) {
                 if (param.getName().equalsIgnoreCase(referenceNameList.get(0))) {
+                    System.out.println("Actual result: parameter " + param.getName() + " of type " + param.getCanonicalType());
                     return Optional.of(param);
                 }
             }
@@ -379,12 +524,14 @@ public class RuleStateTracker {
             // Instance context has access to both static and instance properties, while static
             // context only has access to static properties.
             if (!isContextStatic || fieldOptional.get().isStatic()) {
+                System.out.println("Actual result: prop " + fieldOptional.get().getName() + " of type " + fieldOptional.get().getCanonicalType());
                 return Optional.of(fieldOptional.get());
             }
         }
 
         // Step 5: If, after all of that, we still haven't found anything, just return an empty
         // Optional and let the caller figure out what to do with it.
+        System.out.println("Actual result: Empty, own def type " + methodCall.getDefiningType());
         return Optional.empty();
     }
 
@@ -441,5 +588,28 @@ public class RuleStateTracker {
                             return !innerClassNames.contains(referencedType);
                         })
                 .collect(Collectors.toList());
+    }
+
+    // TODO: JDOC WHOLE CLASS
+    static class InheritanceTree {
+        private final String definingType;
+        private final List<InheritanceTree> subclasses;
+
+        private InheritanceTree(String definingType) {
+            this.definingType = definingType;
+            this.subclasses = new ArrayList<>();
+        }
+
+        private void addSubclass(InheritanceTree inheritanceTree) {
+            subclasses.add(inheritanceTree);
+        }
+
+        String getDefiningType() {
+            return definingType;
+        }
+
+        List<InheritanceTree> getSubclasses() {
+            return subclasses;
+        }
     }
 }

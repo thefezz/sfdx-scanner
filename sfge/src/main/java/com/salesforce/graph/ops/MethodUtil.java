@@ -39,6 +39,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -47,6 +48,22 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 @SuppressWarnings("PMD") // Heavily used and risky to fix at the moment
 public final class MethodUtil {
     private static final Logger LOGGER = LogManager.getLogger(MethodUtil.class);
+
+    // TODO: JDOC
+    public static List<MethodVertex> getMethodsWithName(GraphTraversalSource g, String definingType, String methodName, boolean includeInheritedMethods) {
+        List<MethodVertex> methodsOnType = SFVertexFactory.loadVertices(g,
+            g.V()
+                .where(H.has(NodeType.METHOD, Schema.DEFINING_TYPE, definingType))
+                .where(H.has(NodeType.METHOD, Schema.NAME, methodName))
+        );
+        return methodsOnType;
+        //if (includeInheritedMethods) {
+        //    methodsOnType.addAll(SFVertexFactory.loadVertices(g,
+        //        g.V().where(H.has(NodeType.USER_CLASS, Schema.DEFINING_TYPE, definingType)
+        //            .)
+        //        ))
+        //}
+    }
 
     /**
      * Seeks the declaration of a method matching {@code signature} on {@code definingType} (or
