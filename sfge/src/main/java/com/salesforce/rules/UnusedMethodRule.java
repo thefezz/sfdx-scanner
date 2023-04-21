@@ -100,6 +100,12 @@ public final class UnusedMethodRule extends AbstractPathBasedRule implements Pos
                                                 NodeType.METHOD,
                                                 Schema.NAME,
                                                 ASTConstants.PROPERTY_METHOD_PREFIX))
+                                // Triggers technically have methods. We should ignore those.
+                                .where(
+                                        __.out(Schema.PARENT)
+                                                .hasLabel(NodeType.USER_TRIGGER)
+                                                .count()
+                                                .is(P.eq(0)))
                                 // Abstract methods must be implemented by all concrete child
                                 // classes. This rule can detect whether those concrete
                                 // implementations are used, and another rule detects abstract
