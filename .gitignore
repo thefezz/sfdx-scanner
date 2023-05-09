@@ -1,12 +1,9 @@
-/build
 /test-results
 /test-coverage
 .DS_Store
 *-debug.log
 *-error.log
 /.nyc_output
-/dist
-/lib
 /package-lock.json
 /tmp
 node_modules
@@ -101,7 +98,6 @@ package.json.bak
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -135,13 +131,10 @@ dist
 .gradle
 
 # Ignore Gradle build output directory
-build
 
 # Eclipse
 .classpath
 .project
 .settings
-
-pmd-cataloger/bin
 
 sfge*.log.gz
